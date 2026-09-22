@@ -1,0 +1,4 @@
+app_name: ShopFast
+debug: false
+max_upload_mb: 10
+default_currency: USD

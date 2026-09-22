@@ -1,0 +1,76 @@
+rules:
+  - id: python-sql-injection
+    mode: taint
+    languages: [python]
+    severity: ERROR
+    message: User-controlled data reaches a SQL execute() call; use parameterized
+      queries instead of building SQL with string formatting (CWE-89).
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              def $FUNC(..., $PARAM: str, ...):
+                  ...
+          - focus-metavariable: $PARAM
+    pattern-sinks:
+      - pattern: $CURSOR.execute($QUERY, ...)
+
+  - id: python-path-traversal
+    mode: taint
+    languages: [python]
+    severity: ERROR
+    message: User-controlled data reaches open() without validation, allowing
+      arbitrary file reads outside the intended directory (CWE-22).
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              def $FUNC(..., $PARAM: str, ...):
+                  ...
+          - focus-metavariable: $PARAM
+    pattern-sinks:
+      - pattern: open($PATH, ...)
+
+  - id: python-insecure-deserialization
+    languages: [python]
+    severity: ERROR
+    message: Deserializing data with pickle.loads can execute arbitrary code when
+      the input is attacker-controlled (CWE-502).
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+    patterns:
+      - pattern: pickle.loads($DATA)
+
+  - id: python-command-injection
+    languages: [python]
+    severity: ERROR
+    message: os.system runs its argument through a shell, so user input enables
+      arbitrary command execution (CWE-78).
+    metadata:
+      cwe: "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+    patterns:
+      - pattern: os.system($CMD)
+
+  - id: python-hardcoded-api-key
+    languages: [python]
+    severity: WARNING
+    message: A credential-looking variable is assigned a string literal; move
+      secrets to environment variables or a secret manager (CWE-798).
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+    patterns:
+      - pattern: $NAME = "..."
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(api_?key|secret|token|password|passwd).*
+
+  - id: python-wildcard-cors
+    languages: [python]
+    severity: WARNING
+    message: CORS allows any origin while credentials are enabled, so any website
+      can read authenticated responses (CWE-942).
+    metadata:
+      cwe: "CWE-942: Permissive Cross-domain Policy with Untrusted Domains"
+    pattern: $CALL(..., allow_origins=["*"], ...)

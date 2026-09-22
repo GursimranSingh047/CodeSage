@@ -1,0 +1,669 @@
+/Users/gursimransingh/.zcode/workspace/CodeSage/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/gursimransingh/.zcode/workspace/CodeSage/venv/lib/python3.9/site-packages/langgraph/checkpoint/base/__init__.py:18: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+INFO codesage.pipeline: [node:ingestion] enter repo_url='test-target-repo'
+INFO codesage.pipeline: Using local repository at /Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo
+INFO codesage.pipeline: [node:ingestion] exit repo_path='/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo' language=python
+INFO codesage.pipeline: [node:scanning] enter repo_path='/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo' scanners=('semgrep', 'bandit', 'gitleaks')
+INFO codesage.pipeline: [node:scanning] exit findings=49 ids=['gitleaks:VULNERABILITIES.md:50:stripe-access-token', 'bandit:admin.py:14:B605', 'semgrep:admin.py:14:python-command-injection', 'semgrep:files.py:19:python-path-traversal', 'semgrep:main.py:32:python-wildcard-cors', 'gitleaks:payments.py:10:stripe-access-token']
+INFO codesage.pipeline: [node:next_finding] enter queue=49
+INFO codesage.pipeline: [node:next_finding] exit current='gitleaks:VULNERABILITIES.md:50:stripe-access-token' remaining=48
+INFO codesage.pipeline: [node:context] enter finding='gitleaks:VULNERABILITIES.md:50:stripe-access-token'
+INFO codesage.pipeline: [node:context] exit enclosing_function=402 chars imports=0 related=0
+INFO codesage.pipeline: [node:triage] enter finding='gitleaks:VULNERABILITIES.md:50:stripe-access-token'
+INFO codesage.pipeline: [node:triage] exit finding='gitleaks:VULNERABILITIES.md:50:stripe-access-token' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: gitleaks:VULNERABILITIES.md:50:stripe-access-token triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=48
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:admin.py:14:B605' remaining=47
+INFO codesage.pipeline: [node:context] enter finding='bandit:admin.py:14:B605'
+INFO codesage.pipeline: [node:context] exit enclosing_function=313 chars imports=2 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:admin.py:14:B605'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:admin.py:14:B605' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:admin.py:14:B605' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='bandit:admin.py:14:B605' populated=True original_len=313 patched_len=370 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:admin.py:14:B605' backend=local patched_len=370
+INFO codesage.verification: [verify] enter finding='bandit:admin.py:14:B605' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:admin.py:14:B605 original_len=313 patched_len=370
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-w3d0t44y/repo/admin.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-w3d0t44y/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B605 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-w3d0t44y/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-w3d0t44y/repo
+INFO codesage.verification: [verify] exit finding='bandit:admin.py:14:B605' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.28s'
+INFO codesage.pipeline: [node:verify] exit finding='bandit:admin.py:14:B605' passed=False scan_clean=True tests_passed=False retry_count=0 failure_reason='test suite failed: 1 failed, 15 passed in 0.28s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:admin.py:14:B605' attempt=2 failure_reason='test suite failed: 1 failed, 15 passed in 0.28s'
+INFO codesage.pipeline: [node:patch] exit finding='bandit:admin.py:14:B605' populated=True original_len=313 patched_len=370 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:admin.py:14:B605' backend=local patched_len=370
+INFO codesage.verification: [verify] enter finding='bandit:admin.py:14:B605' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:admin.py:14:B605 original_len=313 patched_len=370
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-9tsrbu2g/repo/admin.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-9tsrbu2g/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B605 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-9tsrbu2g/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-9tsrbu2g/repo
+INFO codesage.verification: [verify] exit finding='bandit:admin.py:14:B605' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='bandit:admin.py:14:B605' passed=False scan_clean=True tests_passed=False retry_count=1 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing bandit:admin.py:14:B605 to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=47
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:admin.py:14:python-command-injection' remaining=46
+INFO codesage.pipeline: [node:context] enter finding='semgrep:admin.py:14:python-command-injection'
+INFO codesage.pipeline: [node:context] exit enclosing_function=313 chars imports=2 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:admin.py:14:python-command-injection'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:admin.py:14:python-command-injection' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:admin.py:14:python-command-injection' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:admin.py:14:python-command-injection' populated=True original_len=313 patched_len=370 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:admin.py:14:python-command-injection' backend=local patched_len=370
+INFO codesage.verification: [verify] enter finding='semgrep:admin.py:14:python-command-injection' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:admin.py:14:python-command-injection original_len=313 patched_len=370
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3xa3qagi/repo/admin.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3xa3qagi/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-command-injection workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3xa3qagi/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3xa3qagi/repo
+INFO codesage.verification: [verify] exit finding='semgrep:admin.py:14:python-command-injection' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:admin.py:14:python-command-injection' passed=False scan_clean=True tests_passed=False retry_count=0 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:admin.py:14:python-command-injection' attempt=2 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:admin.py:14:python-command-injection' populated=True original_len=313 patched_len=370 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:admin.py:14:python-command-injection' backend=local patched_len=370
+INFO codesage.verification: [verify] enter finding='semgrep:admin.py:14:python-command-injection' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:admin.py:14:python-command-injection original_len=313 patched_len=370
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-nvin83fp/repo/admin.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-nvin83fp/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-command-injection workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-nvin83fp/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-nvin83fp/repo
+INFO codesage.verification: [verify] exit finding='semgrep:admin.py:14:python-command-injection' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:admin.py:14:python-command-injection' passed=False scan_clean=True tests_passed=False retry_count=1 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:admin.py:14:python-command-injection to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=46
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:files.py:19:python-path-traversal' remaining=45
+INFO codesage.pipeline: [node:context] enter finding='semgrep:files.py:19:python-path-traversal'
+INFO codesage.pipeline: [node:context] exit enclosing_function=510 chars imports=2 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:files.py:19:python-path-traversal'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:files.py:19:python-path-traversal' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:files.py:19:python-path-traversal' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:files.py:19:python-path-traversal' populated=True original_len=510 patched_len=510 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:files.py:19:python-path-traversal' backend=local patched_len=510
+INFO codesage.verification: [verify] enter finding='semgrep:files.py:19:python-path-traversal' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:files.py:19:python-path-traversal original_len=510 patched_len=510
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-lx6att31/repo/files.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-lx6att31/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-path-traversal workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-lx6att31/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-lx6att31/repo
+INFO codesage.verification: [verify] exit finding='semgrep:files.py:19:python-path-traversal' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-path-traversal' at files.py:19"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:files.py:19:python-path-traversal' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags semgrep rule 'python-path-traversal' at files.py:19"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:files.py:19:python-path-traversal' attempt=2 failure_reason="re-scan still flags semgrep rule 'python-path-traversal' at files.py:19"
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:files.py:19:python-path-traversal' populated=True original_len=510 patched_len=510 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:files.py:19:python-path-traversal' backend=local patched_len=510
+INFO codesage.verification: [verify] enter finding='semgrep:files.py:19:python-path-traversal' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:files.py:19:python-path-traversal original_len=510 patched_len=510
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ghpbpq8m/repo/files.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ghpbpq8m/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-path-traversal workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ghpbpq8m/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ghpbpq8m/repo
+INFO codesage.verification: [verify] exit finding='semgrep:files.py:19:python-path-traversal' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-path-traversal' at files.py:19"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:files.py:19:python-path-traversal' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags semgrep rule 'python-path-traversal' at files.py:19"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:files.py:19:python-path-traversal to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=45
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:main.py:32:python-wildcard-cors' remaining=44
+INFO codesage.pipeline: [node:context] enter finding='semgrep:main.py:32:python-wildcard-cors'
+INFO codesage.pipeline: [node:context] exit enclosing_function=281 chars imports=11 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:main.py:32:python-wildcard-cors'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:main.py:32:python-wildcard-cors' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:main.py:32:python-wildcard-cors' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:main.py:32:python-wildcard-cors' populated=True original_len=281 patched_len=281 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:main.py:32:python-wildcard-cors' backend=local patched_len=281
+INFO codesage.verification: [verify] enter finding='semgrep:main.py:32:python-wildcard-cors' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:main.py:32:python-wildcard-cors original_len=281 patched_len=281
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0q259xlu/repo/main.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0q259xlu/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-wildcard-cors workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0q259xlu/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0q259xlu/repo
+INFO codesage.verification: [verify] exit finding='semgrep:main.py:32:python-wildcard-cors' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-wildcard-cors' at main.py:32"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:main.py:32:python-wildcard-cors' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags semgrep rule 'python-wildcard-cors' at main.py:32"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:main.py:32:python-wildcard-cors' attempt=2 failure_reason="re-scan still flags semgrep rule 'python-wildcard-cors' at main.py:32"
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:main.py:32:python-wildcard-cors' populated=True original_len=281 patched_len=281 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:main.py:32:python-wildcard-cors' backend=local patched_len=281
+INFO codesage.verification: [verify] enter finding='semgrep:main.py:32:python-wildcard-cors' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:main.py:32:python-wildcard-cors original_len=281 patched_len=281
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ig8i87d4/repo/main.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ig8i87d4/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-wildcard-cors workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ig8i87d4/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ig8i87d4/repo
+INFO codesage.verification: [verify] exit finding='semgrep:main.py:32:python-wildcard-cors' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-wildcard-cors' at main.py:32"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:main.py:32:python-wildcard-cors' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags semgrep rule 'python-wildcard-cors' at main.py:32"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:main.py:32:python-wildcard-cors to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=44
+INFO codesage.pipeline: [node:next_finding] exit current='gitleaks:payments.py:10:stripe-access-token' remaining=43
+INFO codesage.pipeline: [node:context] enter finding='gitleaks:payments.py:10:stripe-access-token'
+INFO codesage.pipeline: [node:context] exit enclosing_function=302 chars imports=3 related=0
+INFO codesage.pipeline: [node:triage] enter finding='gitleaks:payments.py:10:stripe-access-token'
+INFO codesage.pipeline: [node:triage] exit finding='gitleaks:payments.py:10:stripe-access-token' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='gitleaks:payments.py:10:stripe-access-token' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='gitleaks:payments.py:10:stripe-access-token' populated=True original_len=302 patched_len=302 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='gitleaks:payments.py:10:stripe-access-token' backend=local patched_len=302
+INFO codesage.verification: [verify] enter finding='gitleaks:payments.py:10:stripe-access-token' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=gitleaks:payments.py:10:stripe-access-token original_len=302 patched_len=302
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-zuzr8l6a/repo/payments.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-zuzr8l6a/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=gitleaks rule=stripe-access-token workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-zuzr8l6a/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-zuzr8l6a/repo
+INFO codesage.verification: [verify] exit finding='gitleaks:payments.py:10:stripe-access-token' scan_clean=False tests_passed=True passed=False reason="re-scan still flags gitleaks rule 'stripe-access-token' at payments.py:10"
+INFO codesage.pipeline: [node:verify] exit finding='gitleaks:payments.py:10:stripe-access-token' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags gitleaks rule 'stripe-access-token' at payments.py:10"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='gitleaks:payments.py:10:stripe-access-token' attempt=2 failure_reason="re-scan still flags gitleaks rule 'stripe-access-token' at payments.py:10"
+INFO codesage.pipeline: [node:patch] exit finding='gitleaks:payments.py:10:stripe-access-token' populated=True original_len=302 patched_len=302 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='gitleaks:payments.py:10:stripe-access-token' backend=local patched_len=302
+INFO codesage.verification: [verify] enter finding='gitleaks:payments.py:10:stripe-access-token' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=gitleaks:payments.py:10:stripe-access-token original_len=302 patched_len=302
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ox3a_sx0/repo/payments.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ox3a_sx0/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=gitleaks rule=stripe-access-token workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ox3a_sx0/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-ox3a_sx0/repo
+INFO codesage.verification: [verify] exit finding='gitleaks:payments.py:10:stripe-access-token' scan_clean=False tests_passed=True passed=False reason="re-scan still flags gitleaks rule 'stripe-access-token' at payments.py:10"
+INFO codesage.pipeline: [node:verify] exit finding='gitleaks:payments.py:10:stripe-access-token' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags gitleaks rule 'stripe-access-token' at payments.py:10"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing gitleaks:payments.py:10:stripe-access-token to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=43
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:payments.py:10:python-hardcoded-api-key' remaining=42
+INFO codesage.pipeline: [node:context] enter finding='semgrep:payments.py:10:python-hardcoded-api-key'
+INFO codesage.pipeline: [node:context] exit enclosing_function=302 chars imports=3 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:payments.py:10:python-hardcoded-api-key'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' populated=True original_len=302 patched_len=302 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' backend=local patched_len=302
+INFO codesage.verification: [verify] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:payments.py:10:python-hardcoded-api-key original_len=302 patched_len=302
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-duw_6i84/repo/payments.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-duw_6i84/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-hardcoded-api-key workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-duw_6i84/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-duw_6i84/repo
+INFO codesage.verification: [verify] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-hardcoded-api-key' at payments.py:10"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags semgrep rule 'python-hardcoded-api-key' at payments.py:10"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' attempt=2 failure_reason="re-scan still flags semgrep rule 'python-hardcoded-api-key' at payments.py:10"
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' populated=True original_len=302 patched_len=302 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' backend=local patched_len=302
+INFO codesage.verification: [verify] enter finding='semgrep:payments.py:10:python-hardcoded-api-key' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:payments.py:10:python-hardcoded-api-key original_len=302 patched_len=302
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3c7q3xdb/repo/payments.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3c7q3xdb/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-hardcoded-api-key workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3c7q3xdb/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3c7q3xdb/repo
+INFO codesage.verification: [verify] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-hardcoded-api-key' at payments.py:10"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:payments.py:10:python-hardcoded-api-key' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags semgrep rule 'python-hardcoded-api-key' at payments.py:10"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:payments.py:10:python-hardcoded-api-key to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=42
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:shop.py:17:B608' remaining=41
+INFO codesage.pipeline: [node:context] enter finding='bandit:shop.py:17:B608'
+INFO codesage.pipeline: [node:context] exit enclosing_function=574 chars imports=3 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:shop.py:17:B608'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:shop.py:17:B608' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:shop.py:17:B608' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='bandit:shop.py:17:B608' populated=True original_len=574 patched_len=574 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:shop.py:17:B608' backend=local patched_len=574
+INFO codesage.verification: [verify] enter finding='bandit:shop.py:17:B608' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:shop.py:17:B608 original_len=574 patched_len=574
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-snvroh7z/repo/shop.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-snvroh7z/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B608 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-snvroh7z/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-snvroh7z/repo
+INFO codesage.verification: [verify] exit finding='bandit:shop.py:17:B608' scan_clean=False tests_passed=True passed=False reason="re-scan still flags bandit rule 'B608' at shop.py:17"
+INFO codesage.pipeline: [node:verify] exit finding='bandit:shop.py:17:B608' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags bandit rule 'B608' at shop.py:17"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:shop.py:17:B608' attempt=2 failure_reason="re-scan still flags bandit rule 'B608' at shop.py:17"
+INFO codesage.pipeline: [node:patch] exit finding='bandit:shop.py:17:B608' populated=True original_len=574 patched_len=574 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:shop.py:17:B608' backend=local patched_len=574
+INFO codesage.verification: [verify] enter finding='bandit:shop.py:17:B608' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:shop.py:17:B608 original_len=574 patched_len=574
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-67gajscg/repo/shop.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-67gajscg/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B608 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-67gajscg/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-67gajscg/repo
+INFO codesage.verification: [verify] exit finding='bandit:shop.py:17:B608' scan_clean=False tests_passed=True passed=False reason="re-scan still flags bandit rule 'B608' at shop.py:17"
+INFO codesage.pipeline: [node:verify] exit finding='bandit:shop.py:17:B608' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags bandit rule 'B608' at shop.py:17"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing bandit:shop.py:17:B608 to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=41
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:shop.py:18:python-sql-injection' remaining=40
+INFO codesage.pipeline: [node:context] enter finding='semgrep:shop.py:18:python-sql-injection'
+INFO codesage.pipeline: [node:context] exit enclosing_function=574 chars imports=3 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:shop.py:18:python-sql-injection'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:shop.py:18:python-sql-injection' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:shop.py:18:python-sql-injection' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:shop.py:18:python-sql-injection' populated=True original_len=574 patched_len=574 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:shop.py:18:python-sql-injection' backend=local patched_len=574
+INFO codesage.verification: [verify] enter finding='semgrep:shop.py:18:python-sql-injection' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:shop.py:18:python-sql-injection original_len=574 patched_len=574
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-6xf8owyq/repo/shop.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-6xf8owyq/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-sql-injection workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-6xf8owyq/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-6xf8owyq/repo
+INFO codesage.verification: [verify] exit finding='semgrep:shop.py:18:python-sql-injection' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-sql-injection' at shop.py:18"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:shop.py:18:python-sql-injection' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags semgrep rule 'python-sql-injection' at shop.py:18"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:shop.py:18:python-sql-injection' attempt=2 failure_reason="re-scan still flags semgrep rule 'python-sql-injection' at shop.py:18"
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:shop.py:18:python-sql-injection' populated=True original_len=574 patched_len=574 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:shop.py:18:python-sql-injection' backend=local patched_len=574
+INFO codesage.verification: [verify] enter finding='semgrep:shop.py:18:python-sql-injection' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:shop.py:18:python-sql-injection original_len=574 patched_len=574
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-5z47v9lh/repo/shop.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-5z47v9lh/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-sql-injection workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-5z47v9lh/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-5z47v9lh/repo
+INFO codesage.verification: [verify] exit finding='semgrep:shop.py:18:python-sql-injection' scan_clean=False tests_passed=True passed=False reason="re-scan still flags semgrep rule 'python-sql-injection' at shop.py:18"
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:shop.py:18:python-sql-injection' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags semgrep rule 'python-sql-injection' at shop.py:18"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:shop.py:18:python-sql-injection to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=40
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tasks.py:4:B403' remaining=39
+INFO codesage.pipeline: [node:context] enter finding='bandit:tasks.py:4:B403'
+INFO codesage.pipeline: [node:context] exit enclosing_function=177 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tasks.py:4:B403'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tasks.py:4:B403' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:tasks.py:4:B403' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='bandit:tasks.py:4:B403' populated=True original_len=177 patched_len=177 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:tasks.py:4:B403' backend=local patched_len=177
+INFO codesage.verification: [verify] enter finding='bandit:tasks.py:4:B403' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:tasks.py:4:B403 original_len=177 patched_len=177
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3q73oc64/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3q73oc64/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B403 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3q73oc64/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3q73oc64/repo
+INFO codesage.verification: [verify] exit finding='bandit:tasks.py:4:B403' scan_clean=False tests_passed=True passed=False reason="re-scan still flags bandit rule 'B403' at tasks.py:4"
+INFO codesage.pipeline: [node:verify] exit finding='bandit:tasks.py:4:B403' passed=False scan_clean=False tests_passed=True retry_count=0 failure_reason="re-scan still flags bandit rule 'B403' at tasks.py:4"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:tasks.py:4:B403' attempt=2 failure_reason="re-scan still flags bandit rule 'B403' at tasks.py:4"
+INFO codesage.pipeline: [node:patch] exit finding='bandit:tasks.py:4:B403' populated=True original_len=177 patched_len=177 NOOP=True explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:tasks.py:4:B403' backend=local patched_len=177
+INFO codesage.verification: [verify] enter finding='bandit:tasks.py:4:B403' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:tasks.py:4:B403 original_len=177 patched_len=177
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-jxi33dc9/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-jxi33dc9/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B403 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-jxi33dc9/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-jxi33dc9/repo
+INFO codesage.verification: [verify] exit finding='bandit:tasks.py:4:B403' scan_clean=False tests_passed=True passed=False reason="re-scan still flags bandit rule 'B403' at tasks.py:4"
+INFO codesage.pipeline: [node:verify] exit finding='bandit:tasks.py:4:B403' passed=False scan_clean=False tests_passed=True retry_count=1 failure_reason="re-scan still flags bandit rule 'B403' at tasks.py:4"
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing bandit:tasks.py:4:B403 to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=39
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tasks.py:21:B301' remaining=38
+INFO codesage.pipeline: [node:context] enter finding='bandit:tasks.py:21:B301'
+INFO codesage.pipeline: [node:context] exit enclosing_function=364 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tasks.py:21:B301'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tasks.py:21:B301' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:tasks.py:21:B301' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='bandit:tasks.py:21:B301' populated=True original_len=364 patched_len=398 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:tasks.py:21:B301' backend=local patched_len=398
+INFO codesage.verification: [verify] enter finding='bandit:tasks.py:21:B301' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:tasks.py:21:B301 original_len=364 patched_len=398
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-cl3kpaoe/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-cl3kpaoe/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B301 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-cl3kpaoe/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-cl3kpaoe/repo
+INFO codesage.verification: [verify] exit finding='bandit:tasks.py:21:B301' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='bandit:tasks.py:21:B301' passed=False scan_clean=True tests_passed=False retry_count=0 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='bandit:tasks.py:21:B301' attempt=2 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:patch] exit finding='bandit:tasks.py:21:B301' populated=True original_len=364 patched_len=398 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='bandit:tasks.py:21:B301' backend=local patched_len=398
+INFO codesage.verification: [verify] enter finding='bandit:tasks.py:21:B301' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=bandit:tasks.py:21:B301 original_len=364 patched_len=398
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3cibd44w/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3cibd44w/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=bandit rule=B301 workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3cibd44w/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-3cibd44w/repo
+INFO codesage.verification: [verify] exit finding='bandit:tasks.py:21:B301' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='bandit:tasks.py:21:B301' passed=False scan_clean=True tests_passed=False retry_count=1 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing bandit:tasks.py:21:B301 to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=38
+INFO codesage.pipeline: [node:next_finding] exit current='semgrep:tasks.py:21:python-insecure-deserialization' remaining=37
+INFO codesage.pipeline: [node:context] enter finding='semgrep:tasks.py:21:python-insecure-deserialization'
+INFO codesage.pipeline: [node:context] exit enclosing_function=364 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='semgrep:tasks.py:21:python-insecure-deserialization'
+INFO codesage.pipeline: [node:triage] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' is_real_vulnerability=True confidence=0.90 cwe=CWE-0
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=True -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' attempt=1 failure_reason=None
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' populated=True original_len=364 patched_len=398 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' backend=local patched_len=398
+INFO codesage.verification: [verify] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:tasks.py:21:python-insecure-deserialization original_len=364 patched_len=398
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0fbascy5/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0fbascy5/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-insecure-deserialization workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0fbascy5/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-0fbascy5/repo
+INFO codesage.verification: [verify] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' passed=False scan_clean=True tests_passed=False retry_count=0 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=1 max_retries=2 -> patch
+INFO codesage.pipeline: [node:patch] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' attempt=2 failure_reason='test suite failed: 1 failed, 15 passed in 0.24s'
+INFO codesage.pipeline: [node:patch] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' populated=True original_len=364 patched_len=398 NOOP=False explanation='demo-mode scripted fix'
+INFO codesage.pipeline: [edge:patch] condition=patch is not None value=True -> verify
+INFO codesage.pipeline: [node:verify] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' backend=local patched_len=398
+INFO codesage.verification: [verify] enter finding='semgrep:tasks.py:21:python-insecure-deserialization' backend=local
+INFO codesage.verification: [verify:apply] enter repo=/Users/gursimransingh/.zcode/workspace/CodeSage/test-target-repo finding=semgrep:tasks.py:21:python-insecure-deserialization original_len=364 patched_len=398
+INFO codesage.verification: [verify:apply] exit wrote patched file to disk: /var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-7bli9liu/repo/tasks.py (workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-7bli9liu/repo)
+INFO codesage.verification: [verify:scan] enter backend=local tool=semgrep rule=python-insecure-deserialization workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-7bli9liu/repo
+INFO codesage.verification: [verify:tests] enter backend=local workspace=/var/folders/23/l26y76dd0cx60xpb_tp_y9zr0000gn/T/codesage-verify-7bli9liu/repo
+INFO codesage.verification: [verify] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' scan_clean=True tests_passed=False passed=False reason='test suite failed: 1 failed, 15 passed in 0.25s'
+INFO codesage.pipeline: [node:verify] exit finding='semgrep:tasks.py:21:python-insecure-deserialization' passed=False scan_clean=True tests_passed=False retry_count=1 failure_reason='test suite failed: 1 failed, 15 passed in 0.25s'
+INFO codesage.pipeline: [edge:verify] passed=False retry_count=2 max_retries=2 -> human_review
+INFO codesage.pipeline: Routing semgrep:tasks.py:21:python-insecure-deserialization to human review
+INFO codesage.pipeline: [node:next_finding] enter queue=37
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:21:B101' remaining=36
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:21:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=135 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:21:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:21:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:21:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=36
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:22:B101' remaining=35
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:22:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=135 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:22:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:22:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:22:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=35
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:29:B101' remaining=34
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:29:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=179 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:29:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:29:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:29:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=34
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:34:B101' remaining=33
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:34:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=250 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:34:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:34:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:34:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=33
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:36:B101' remaining=32
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:36:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=250 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:36:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:36:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:36:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=32
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:37:B101' remaining=31
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:37:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=250 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:37:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:37:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:37:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=31
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:44:B101' remaining=30
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:44:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=370 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:44:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:44:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:44:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=30
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:49:B101' remaining=29
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:49:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=370 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:49:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:49:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:49:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=29
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:50:B101' remaining=28
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:50:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=370 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:50:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:50:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:50:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=28
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:55:B101' remaining=27
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:55:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=192 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:55:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:55:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:55:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=27
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:56:B101' remaining=26
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:56:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=192 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:56:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:56:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:56:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=26
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:61:B101' remaining=25
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:61:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=137 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:61:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:61:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:61:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=25
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_functional.py:66:B101' remaining=24
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_functional.py:66:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=159 chars imports=4 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_functional.py:66:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_functional.py:66:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_functional.py:66:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=24
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:10:B403' remaining=23
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:10:B403'
+INFO codesage.pipeline: [node:context] exit enclosing_function=155 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:10:B403'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:10:B403' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:10:B403 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=23
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:30:B101' remaining=22
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:30:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=498 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:30:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:30:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:30:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=22
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:35:B101' remaining=21
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:35:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=498 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:35:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:35:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:35:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=21
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:36:B101' remaining=20
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:36:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=498 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:36:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:36:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:36:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=20
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:41:B101' remaining=19
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:41:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=208 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:41:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:41:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:41:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=19
+INFO codesage.pipeline: [node:next_finding] exit current='gitleaks:tests/test_planted_vulnerabilities.py:41:stripe-access-token' remaining=18
+INFO codesage.pipeline: [node:context] enter finding='gitleaks:tests/test_planted_vulnerabilities.py:41:stripe-access-token'
+INFO codesage.pipeline: [node:context] exit enclosing_function=208 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='gitleaks:tests/test_planted_vulnerabilities.py:41:stripe-access-token'
+INFO codesage.pipeline: [node:triage] exit finding='gitleaks:tests/test_planted_vulnerabilities.py:41:stripe-access-token' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: gitleaks:tests/test_planted_vulnerabilities.py:41:stripe-access-token triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=18
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:48:B101' remaining=17
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:48:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=387 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:48:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:48:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:48:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=17
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:51:B101' remaining=16
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:51:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=387 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:51:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:51:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:51:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=16
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:59:B101' remaining=15
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:59:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=339 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:59:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:59:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:59:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=15
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:60:B101' remaining=14
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:60:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=339 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:60:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:60:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:60:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=14
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:66:B101' remaining=13
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:66:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=508 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:66:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:66:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:66:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=13
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:67:B101' remaining=12
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:67:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=508 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:67:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:67:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:67:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=12
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:71:B101' remaining=11
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:71:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=508 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:71:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:71:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:71:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=11
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:72:B101' remaining=10
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:72:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=508 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:72:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:72:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:72:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=10
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:78:B101' remaining=9
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:78:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=514 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:78:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:78:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:78:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=9
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:81:B101' remaining=8
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:81:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=514 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:81:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:81:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:81:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=8
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:82:B101' remaining=7
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:82:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=514 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:82:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:82:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:82:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=7
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:90:B101' remaining=6
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:90:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=206 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:90:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:90:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:90:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=6
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:91:B101' remaining=5
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:91:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=206 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:91:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:91:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:91:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=5
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:97:B101' remaining=4
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:97:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=713 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:97:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:97:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:97:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=4
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:101:B101' remaining=3
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:101:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=713 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:101:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:101:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:101:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=3
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:110:B101' remaining=2
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:110:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=713 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:110:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:110:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:110:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=2
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:118:B101' remaining=1
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:118:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=369 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:118:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:118:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:118:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=1
+INFO codesage.pipeline: [node:next_finding] exit current='bandit:tests/test_planted_vulnerabilities.py:119:B101' remaining=0
+INFO codesage.pipeline: [node:context] enter finding='bandit:tests/test_planted_vulnerabilities.py:119:B101'
+INFO codesage.pipeline: [node:context] exit enclosing_function=369 chars imports=7 related=0
+INFO codesage.pipeline: [node:triage] enter finding='bandit:tests/test_planted_vulnerabilities.py:119:B101'
+INFO codesage.pipeline: [node:triage] exit finding='bandit:tests/test_planted_vulnerabilities.py:119:B101' is_real_vulnerability=False confidence=0.60 cwe=CWE-0
+INFO codesage.pipeline: bandit:tests/test_planted_vulnerabilities.py:119:B101 triaged as false positive
+INFO codesage.pipeline: [edge:triage] condition=triage_result.is_real_vulnerability value=False -> next_finding
+INFO codesage.pipeline: [node:next_finding] enter queue=0
+INFO codesage.pipeline: [node:next_finding] exit queue empty -> run complete
+report written to diagnostics/diag_report.md
+findings processed: 49 · duration: 26.2s

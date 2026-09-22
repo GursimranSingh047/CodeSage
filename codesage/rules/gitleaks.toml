@@ -1,0 +1,11 @@
+title = "CodeSage gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Skip virtualenvs, caches and generated data"
+paths = [
+  '(^|/)(venv|\.venv|node_modules|__pycache__|data)/',
+  '(^|/)\.git/',
+]
