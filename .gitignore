@@ -6,5 +6,8 @@ __pycache__/
 bin/
 codesage-repos/
 codesage_data/
-.envtest-target-repo/
+.env
+.env.*
+!.env.example
+test-target-repo/
 codesage_data/
