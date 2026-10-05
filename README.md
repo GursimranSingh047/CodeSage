@@ -104,3 +104,6 @@ DATABASE_URL=
 ## License
 
 Academic project — final year engineering coursework.
+
+## Latest Update
+- Improved project documentation and developer setup.
