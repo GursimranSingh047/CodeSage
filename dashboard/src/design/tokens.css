@@ -1,105 +1,146 @@
-/* CodeSage — notched-card green/black theme (Tailwind v4, granular import;
-   no preflight so legacy pages keep their own stylesheet). */
+/* CodeSage — Editorial Ivory & Bronze Design System (Tailwind v4) */
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
 :root {
-  --bg-base: #0a0a0a;
-  --bg-surface: #111411;
-  --accent-mint: #8ff5b0;
-  --accent-mint-dark: #1a3d2a;
-  --border-green: rgba(143, 245, 176, 0.25);
-  --text-primary: #f2f2f2;
-  --text-muted: #9ca39c;
+  --bg-canvas: #F8F7F4;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F4F1EA;
+  --bg-sidebar: #F9F8F5;
+  --border-subtle: #EBE7DF;
+  --border-strong: #DBD5CA;
+  
+  --text-primary: #171717;
+  --text-secondary: #6B6762;
+  --text-tertiary: #96918A;
+
+  --accent-bronze: #A97843;
+  --accent-bronze-hover: #966734;
+  --accent-bronze-light: #F7F2EB;
+  --accent-bronze-border: #E6D8C5;
+
+  --status-critical: #EF4444;
+  --status-critical-bg: #FEF2F2;
+  --status-high: #F97316;
+  --status-high-bg: #FFF7ED;
+  --status-medium: #F59E0B;
+  --status-medium-bg: #FFFBEB;
+  --status-low: #3B82F6;
+  --status-low-bg: #EFF6FF;
+  --status-info: #10B981;
+  --status-info-bg: #ECFDF5;
+
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-floating: 0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
 }
 
 @theme {
-  --color-void: #0a0a0a;
-  --color-surface: #0d0d0d;
-  --color-raised: #111411;
-  --color-overlay: #131712;
-  --color-edge: rgba(143, 245, 176, 0.25);
-  --color-edge-strong: rgba(143, 245, 176, 0.5);
-  --color-ink: #f2f2f2;
-  --color-fog: #9ca39c;
-  --color-dim: #6b726b;
+  --color-canvas: #F8F7F4;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F4F1EA;
+  --color-sidebar: #F9F8F5;
+  
+  --color-edge: #EBE7DF;
+  --color-edge-strong: #DBD5CA;
+  
+  --color-ink: #171717;
+  --color-fog: #6B6762;
+  --color-dim: #96918A;
 
-  --color-mint: #8ff5b0;
-  --color-mint-deep: #1a3d2a;
-  --color-indigo-brand: #8ff5b0;   /* legacy token name, now mint */
-  --color-indigo-soft: #c9ffdf;
-  --color-emerald-brand: #8ff5b0;
-  --color-amber-brand: #f5d98f;
-  --color-red-brand: #ff8f8f;
-  --color-slate-idle: #6b726b;
+  --color-bronze: #A97843;
+  --color-bronze-hover: #966734;
+  --color-bronze-light: #F7F2EB;
+  --color-bronze-border: #E6D8C5;
 
-  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-critical: #EF4444;
+  --color-critical-bg: #FEF2F2;
+  --color-high: #F97316;
+  --color-high-bg: #FFF7ED;
+  --color-medium: #F59E0B;
+  --color-medium-bg: #FFFBEB;
+  --color-low: #3B82F6;
+  --color-low-bg: #EFF6FF;
+  --color-info: #10B981;
+  --color-info-bg: #ECFDF5;
+
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-italic-serif: "Newsreader", Georgia, serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-html, body { background: var(--bg-base); }
-/* preflight is disabled for legacy pages — apply the minimal link reset globally */
-a { color: inherit; text-decoration: none; }
-
-/* ---- notched shapes (one corner cut diagonally) ---- */
-.notch-tr { clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%); }
-.notch-tl { clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%, 0 24px); }
-.notch-bl { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%); }
-.notch-br { clip-path: polygon(0 0, 100% 0, 100% 100%, 24px 100%, 0 calc(100% - 24px)); }
-.notch-both { clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px); }
-
-/* faint green wireframe perspective grid (decorative background) */
-.grid-bg {
-  position: fixed;
-  inset: -20% -10%;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(143, 245, 176, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(143, 245, 176, 0.07) 1px, transparent 1px);
-  background-size: 64px 64px;
-  transform: perspective(600px) rotateX(38deg) scale(1.5);
-  transform-origin: center 30%;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+html, body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.font-display { font-family: var(--font-display); }
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  border-style: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Typography utilities */
+.font-serif-heading {
+  font-family: var(--font-serif);
+}
+
+.font-serif-italic {
+  font-family: var(--font-italic-serif);
+  font-style: italic;
+}
+
+/* Card & Surface utilities */
+.editorial-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editorial-card:hover {
+  border-color: #E2DDD3;
+}
+
+.editorial-subtle-card {
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+}
+
+/* Pulsing step animation */
+@keyframes bronze-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(169, 120, 67, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(169, 120, 67, 0);
+    transform: scale(1.05);
+  }
+}
+
+.bronze-pulse {
+  animation: bronze-pulse 1.8s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .motion-safe-orbit, .motion-safe-spin, .cs-pulse { animation: none !important; }
+  .bronze-pulse {
+    animation: none !important;
+  }
 }
-
-/* active agent icon pulse */
-@keyframes cs-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(143, 245, 176, 0.45); transform: scale(1); }
-  50% { box-shadow: 0 0 0 8px rgba(143, 245, 176, 0); transform: scale(1.06); }
-}
-.cs-pulse { animation: cs-pulse 1.5s ease-in-out infinite; }
-@keyframes cs-spin { to { transform: rotate(360deg); } }
-.cs-spin { animation: cs-spin 1.6s linear infinite; }
-
-/* auth pages — notched green restyle */
-.auth-card {
-  border-radius: 0;
-  border-color: var(--border-green);
-  background: #0d0d0d;
-  clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 0 100%);
-}
-.auth-card h1 { font-family: var(--font-display); }
-.auth-card input {
-  background: #0a0a0a;
-  border-color: var(--border-green);
-  border-radius: 0;
-}
-.auth-card input:focus { border-color: var(--accent-mint); }
-.auth-card .primary-btn {
-  background: var(--accent-mint);
-  color: #000;
-  border: none;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
-  font-family: var(--font-display);
-}
-.auth-card .primary-btn:hover { background: #a5ffd0; }
-.auth-toggle a { color: var(--accent-mint); }

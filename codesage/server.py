@@ -36,10 +36,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from codesage.ingestion import IngestionError, get_github_repo_metadata, validate_github_url
 from codesage.pipeline import PipelineConfig, build_pipeline
 
 logger = logging.getLogger(__name__)
@@ -47,19 +48,39 @@ logger = logging.getLogger(__name__)
 DASHBOARD_DIST = Path(__file__).resolve().parent.parent / "dashboard" / "dist"
 
 
+from codesage.persistence import ScanStorage
+
 class ScanRequest(BaseModel):
-    repo_url: str
-    github_repo: Optional[str] = None
+    repo_url: Optional[str] = None
+    repository_url: Optional[str] = None
+    branch: Optional[str] = None
     base_branch: Optional[str] = None
+    github_repo: Optional[str] = None
+    github_token: Optional[str] = None
     scanners: tuple = ("semgrep", "bandit", "gitleaks")
+
+    @property
+    def target_url(self) -> str:
+        return (self.repository_url or self.repo_url or "").strip()
+
+    @property
+    def target_branch(self) -> Optional[str]:
+        return self.branch or self.base_branch
+
+
+class ReviewRequest(BaseModel):
+    decision: str  # approved | rejected
+    notes: Optional[str] = None
+    manual_patch: Optional[str] = None
 
 
 class ScanRun:
-    """Thread-safe in-memory record of one pipeline run."""
+    """Thread-safe record of one pipeline run with persistence support."""
 
-    def __init__(self, scan_id: str, repo_url: str):
+    def __init__(self, scan_id: str, repo_url: str, branch: Optional[str] = None):
         self.id = scan_id
         self.repo_url = repo_url
+        self.branch = branch
         self.status = "running"
         self.started = time.time()
         self.finished: Optional[float] = None
@@ -67,6 +88,8 @@ class ScanRun:
         self.current_finding = None
         self.completed: list = []
         self.artifacts: dict = {}  # finding_id -> {stage: detail dict}
+        self.repository_metadata: dict = {}
+        self.technologies: dict = {}
         self._events: list = []
         self._lock = threading.Lock()
 
@@ -82,8 +105,67 @@ class ScanRun:
     def counts(self) -> dict:
         counts: dict = {}
         for entry in self.completed:
-            counts[entry["status"]] = counts.get(entry["status"], 0) + 1
+            status = entry.get("status", "")
+            counts[status] = counts.get(status, 0) + 1
         return counts
+
+    def summary_metrics(self) -> dict:
+        metrics: dict = {
+            "total": len(self.completed),
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "informational": 0,
+            "confirmed": 0,
+            "false_positive": 0,
+            "verified": 0,
+        }
+        for entry in self.completed:
+            status = entry.get("status", "")
+            metrics[status] = metrics.get(status, 0) + 1
+            sev = str(entry.get("severity", "medium")).lower()
+            if sev in metrics:
+                metrics[sev] += 1
+            if status == "false_positive":
+                metrics["false_positive"] += 1
+            else:
+                metrics["confirmed"] += 1
+            if status in ("verified_pr_opened", "verified_pr_skipped"):
+                metrics["verified"] += 1
+        return metrics
+
+    def to_dict(self) -> dict:
+        with self._lock:
+            return {
+                "id": self.id,
+                "repo_url": self.repo_url,
+                "branch": self.branch,
+                "status": self.status,
+                "started": self.started,
+                "finished": self.finished,
+                "error": self.error,
+                "completed": self.completed,
+                "artifacts": self.artifacts,
+                "repository_metadata": self.repository_metadata,
+                "technologies": self.technologies,
+                "events": self._events,
+            }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ScanRun":
+        run = cls(data["id"], data["repo_url"], branch=data.get("branch"))
+        run.status = data.get("status", "completed")
+        run.started = data.get("started", 0.0)
+        run.finished = data.get("finished")
+        run.error = data.get("error")
+        run.completed = data.get("completed", [])
+        run.artifacts = data.get("artifacts", {})
+        run.repository_metadata = data.get("repository_metadata", {})
+        run.technologies = data.get("technologies", {})
+        run._events = data.get("events", [])
+        return run
+
 
 
 # ---------------------------------------------------------------------------
@@ -109,9 +191,22 @@ def _handle_delta(run: ScanRun, node: str, delta: dict) -> None:
         run.emit(event)
 
     if node == "ingestion":
-        stage("done", "ingestion")
+        meta = delta.get("repo_metadata") or {}
+        tech = delta.get("technologies") or {}
+        run.repository_metadata = meta
+        run.technologies = tech
+        if delta.get("branch"):
+            run.branch = delta["branch"]
+        stage("done", "ingestion", detail={"metadata": meta, "technologies": tech, "branch": run.branch})
+        run.emit({
+            "type": "repo_ingested",
+            "metadata": meta,
+            "technologies": tech,
+            "branch": run.branch,
+        })
         stage("active", "scanning")
     elif node == "scanning":
+
         stage("done", "scanning", detail={"count": len(delta.get("findings", []))})
         run.emit({"type": "findings_discovered", "count": len(delta.get("findings", []))})
     elif node == "next_finding":
@@ -197,7 +292,11 @@ def _handle_delta(run: ScanRun, node: str, delta: dict) -> None:
         run.completed = list(delta["completed_findings"])
 
 
-def _run_scan(run: ScanRun, config: PipelineConfig) -> None:
+def _run_scan(
+    run: ScanRun,
+    config: PipelineConfig,
+    storage: Optional[ScanStorage] = None,
+) -> None:
     run.emit({"type": "run_started", "repo": run.repo_url})
     try:
         app = build_pipeline(config)
@@ -229,6 +328,11 @@ def _run_scan(run: ScanRun, config: PipelineConfig) -> None:
         run.emit({"type": "error", "message": run.error})
     finally:
         run.finished = time.time()
+        if storage:
+            try:
+                storage.save_run(run.to_dict())
+            except Exception as exc:
+                logger.warning("Failed to persist scan run %s: %s", run.id, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -272,13 +376,16 @@ def _demo_config(req: ScanRequest) -> PipelineConfig:
         })
 
     return PipelineConfig(
-        repo_input=req.repo_url, llm=MockLLM(responder=responder),
+        repo_input=req.target_url, llm=MockLLM(responder=responder),
         backend=LocalBackend(), github_repo=req.github_repo,
-        base_branch=req.base_branch, scanners=tuple(req.scanners),
+        base_branch=req.target_branch, scanners=tuple(req.scanners),
     )
 
 
-def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]] = None):
+def create_app(
+    config_factory: Optional[Callable[[ScanRequest], PipelineConfig]] = None,
+    storage: Optional[ScanStorage] = None,
+):
     app = FastAPI(title="CodeSage")
     app.add_middleware(
         CORSMiddleware,
@@ -286,7 +393,16 @@ def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]]
         allow_methods=["*"], allow_headers=["*"],
     )
 
+    storage = storage if storage is not None else ScanStorage()
     runs: dict = {}
+
+    # Hydrate past scan runs from durable storage
+    for run_data in storage.list_runs():
+        try:
+            r = ScanRun.from_dict(run_data)
+            runs[r.id] = r
+        except Exception as exc:
+            logger.warning("Failed to hydrate scan from disk: %s", exc)
 
     def default_factory(req: ScanRequest) -> PipelineConfig:
         if os.environ.get("CODESAGE_DEMO_MOCK") == "1":
@@ -296,8 +412,9 @@ def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]]
         from codesage.verification import get_backend
 
         return PipelineConfig(
-            repo_input=req.repo_url, llm=create_llm(), backend=get_backend(),
-            github_repo=req.github_repo, base_branch=req.base_branch,
+            repo_input=req.target_url, llm=create_llm(), backend=get_backend(),
+            github_repo=req.github_repo, github_token=req.github_token,
+            base_branch=req.target_branch,
             scanners=tuple(req.scanners),
         )
 
@@ -311,10 +428,13 @@ def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]]
                 {
                     "scan_id": run.id,
                     "repo_url": run.repo_url,
+                    "branch": run.branch,
                     "status": run.status,
                     "started": run.started,
                     "finished": run.finished,
                     "counts": run.counts(),
+                    "repository_metadata": run.repository_metadata,
+                    "technologies": run.technologies,
                 }
                 for run in sorted(runs.values(), key=lambda r: r.started, reverse=True)
             ]
@@ -322,31 +442,160 @@ def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]]
 
     @app.post("/scan")
     def start_scan(req: ScanRequest):
-        if not Path(req.repo_url).expanduser().is_dir() and "://" not in req.repo_url:
-            raise HTTPException(status_code=400, detail=f"Repository not found: {req.repo_url!r}")
+        target_url = req.target_url
+        if not target_url:
+            raise HTTPException(status_code=400, detail="Repository URL is required.")
+
+        # Validate URL if it looks like a remote repository
+        if "github.com" in target_url or target_url.startswith("https://"):
+            try:
+                val = validate_github_url(target_url)
+                target_url = val["normalized_url"]
+            except IngestionError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+        elif not Path(target_url).expanduser().is_dir() and "://" not in target_url:
+            raise HTTPException(status_code=400, detail=f"Repository not found: {target_url!r}")
+
         try:
             config = factory(req)
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         scan_id = uuid.uuid4().hex[:12]
-        run = ScanRun(scan_id, req.repo_url)
+        run = ScanRun(scan_id, target_url, branch=req.target_branch)
         runs[scan_id] = run
-        threading.Thread(target=_run_scan, args=(run, config), daemon=True,
+        storage.save_run(run.to_dict())
+        threading.Thread(target=_run_scan, args=(run, config, storage), daemon=True,
                          name=f"scan-{scan_id}").start()
-        return {"scan_id": scan_id, "status": "running"}
+        return {
+            "scan_id": scan_id,
+            "status": "running",
+            "repository_url": target_url,
+            "branch": req.target_branch,
+            "message": "Repository scan initiated",
+        }
+
+    @app.post("/api/repositories/scan")
+    def api_repositories_scan(req: ScanRequest):
+        """Initiate an engineering and security scan of an accessible repository."""
+        return start_scan(req)
+
+    @app.get("/api/repositories/validate")
+    def validate_repository(
+        url: str = Query(..., description="GitHub repository URL"),
+        branch: Optional[str] = Query(None, description="Optional branch name"),
+        token: Optional[str] = Query(None, description="Optional personal access token"),
+    ):
+        """Validate a GitHub repository URL and fetch metadata prior to scanning."""
+        try:
+            val = validate_github_url(url)
+            meta = get_github_repo_metadata(val["owner"], val["repo"], token=token)
+            if not meta.get("accessible", True):
+                return {
+                    "valid": False,
+                    "error": meta.get("error", "Repository is private or inaccessible."),
+                    "owner": val["owner"],
+                    "repo": val["repo"],
+                    "private": True,
+                }
+            return {
+                "valid": True,
+                "owner": val["owner"],
+                "repo": val["repo"],
+                "full_name": val["full_name"],
+                "normalized_url": val["normalized_url"],
+                "default_branch": meta.get("default_branch", "main"),
+                "is_private": meta.get("is_private", False),
+                "description": meta.get("description", ""),
+                "stars": meta.get("stars", 0),
+                "size_kb": meta.get("size_kb", 0),
+                "is_empty": meta.get("is_empty", False),
+                "language": meta.get("language", "unknown"),
+            }
+        except IngestionError as exc:
+            return {"valid": False, "error": str(exc)}
+        except Exception as exc:
+            return {"valid": False, "error": f"Validation error: {exc}"}
 
     def _get_run(scan_id: str) -> ScanRun:
         run = runs.get(scan_id)
         if run is None:
-            raise HTTPException(status_code=404, detail=f"unknown scan {scan_id!r}")
+            # Check if stored on disk but not yet in memory
+            disk_data = storage.load_run(scan_id)
+            if disk_data:
+                run = ScanRun.from_dict(disk_data)
+                runs[scan_id] = run
+            else:
+                raise HTTPException(status_code=404, detail=f"unknown scan {scan_id!r}")
         return run
+
+    @app.get("/scan/{scan_id}/report")
+    def download_report(scan_id: str):
+        """Generate a complete Markdown Engineering Audit Report for a scan."""
+        run = _get_run(scan_id)
+        repo_name = run.repository_metadata.get("full_name") or run.repo_url
+        counts = run.summary_metrics()
+        lines = [
+            f"# CodeSage — Engineering & Security Audit Report",
+            f"",
+            f"- **Repository**: `{repo_name}`",
+            f"- **Scan ID**: `{run.id}`",
+            f"- **Status**: `{run.status}`",
+            f"- **Branch**: `{run.branch or 'default'}`",
+            f"- **Commit SHA**: `{run.repository_metadata.get('commit_sha', 'unknown')}`",
+            f"- **Scanned At**: `{datetime.fromtimestamp(run.started, tz=timezone.utc).isoformat() if run.started else 'unknown'}`",
+            f"",
+            f"## 1. Executive Summary",
+            f"- Total Findings: **{counts.get('total', 0)}**",
+            f"- Critical: **{counts.get('critical', 0)}**",
+            f"- High: **{counts.get('high', 0)}**",
+            f"- Medium: **{counts.get('medium', 0)}**",
+            f"- Low: **{counts.get('low', 0)}**",
+            f"- Confirmed Vulnerabilities: **{counts.get('confirmed', 0)}**",
+            f"- Filtered False Positives: **{counts.get('false_positive', 0)}**",
+            f"- Verified Fixes: **{counts.get('verified', 0)}**",
+            f"",
+            f"## 2. Technology Stack",
+        ]
+        tech = run.technologies or {}
+        langs = tech.get("languages", {})
+        if langs:
+            lines.append("### Detected Languages")
+            for lang, info in langs.items():
+                lines.append(f"- **{lang.capitalize()}**: {info.get('file_count')} files ({info.get('percentage')}%)")
+        frameworks = tech.get("frameworks", [])
+        if frameworks:
+            lines.append(f"\n### Frameworks & Tools\n- " + ", ".join(frameworks))
+        lines.append(f"\n- Files Analyzed: {tech.get('files_analyzed', len(run.completed))}")
+        lines.append(f"- Files Skipped: {tech.get('files_skipped', 0)}")
+        lines.append("\n## 3. Findings Breakdown\n")
+        for f in run.completed:
+            lines.append(f"### [{str(f.get('severity', 'MEDIUM')).upper()}] {f.get('cwe_id', 'Security Finding')} — {f.get('file_path')}:{f.get('line_number', '')}")
+            lines.append(f"- **Tool Source**: {f.get('tool_source')}")
+            lines.append(f"- **Status**: {f.get('status')}")
+            if f.get('reasoning'):
+                lines.append(f"- **AI Analysis**: {f.get('reasoning')}")
+            if f.get('raw_message'):
+                lines.append(f"- **Scanner Message**: {f.get('raw_message')}")
+            lines.append("")
+        from fastapi.responses import Response
+        return Response(content="\n".join(lines), media_type="text/markdown")
+
 
     @app.get("/scan/{scan_id}/status")
     def scan_status(scan_id: str):
         run = _get_run(scan_id)
         return {
-            "scan_id": run.id, "status": run.status, "repo_url": run.repo_url,
-            "started": run.started, "finished": run.finished, "counts": run.counts(),
+            "scan_id": run.id,
+            "status": run.status,
+            "repo_url": run.repo_url,
+            "branch": run.branch,
+            "repository_metadata": run.repository_metadata,
+            "technologies": run.technologies,
+            "started": run.started,
+            "finished": run.finished,
+            "counts": run.counts(),
+            "summary_metrics": run.summary_metrics(),
             "error": run.error,
             "current_finding": run.current_finding.id if run.current_finding else None,
         }
@@ -363,6 +612,48 @@ def create_app(config_factory: Optional[Callable[[ScanRequest], PipelineConfig]]
         if artifacts is None:
             raise HTTPException(status_code=404, detail=f"no artifacts for {finding_id!r}")
         return artifacts
+
+    @app.get("/scan/{scan_id}/human-review")
+    def get_human_review(scan_id: str):
+        """Retrieve all findings in needs_human_review status for a given scan."""
+        run = _get_run(scan_id)
+        review_items = [f for f in run.completed if f.get("status") == "needs_human_review"]
+        return {"scan_id": run.id, "count": len(review_items), "findings": review_items}
+
+    @app.post("/scan/{scan_id}/findings/{finding_id}/review")
+    def review_finding(scan_id: str, finding_id: str, req: ReviewRequest):
+        """Approve or reject a finding that was escalated to human review."""
+        run = _get_run(scan_id)
+        decision = req.decision.strip().lower()
+        if decision not in ("approved", "rejected"):
+            raise HTTPException(status_code=400, detail="decision must be 'approved' or 'rejected'")
+
+        target = None
+        for entry in run.completed:
+            if entry.get("finding_id") == finding_id:
+                target = entry
+                break
+        if target is None:
+            raise HTTPException(status_code=404, detail=f"finding {finding_id!r} not found in scan")
+
+        target["review_status"] = decision
+        target["review_notes"] = req.notes
+        if req.manual_patch:
+            target["manual_patch"] = req.manual_patch
+
+        run.emit({
+            "type": "finding_reviewed",
+            "finding_id": finding_id,
+            "decision": decision,
+            "notes": req.notes,
+        })
+        storage.save_run(run.to_dict())
+        return {
+            "status": "ok",
+            "finding_id": finding_id,
+            "review_status": decision,
+            "review_notes": req.notes,
+        }
 
     @app.get("/scan/{scan_id}/events")
     def scan_events(scan_id: str):

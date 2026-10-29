@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from codesage.schemas import Finding
 
@@ -43,7 +43,7 @@ class ScannerError(RuntimeError):
 # ---------------------------------------------------------------------------
 
 def find_binary(name: str, env_var: str) -> Optional[str]:
-    """Resolve a scanner binary: env var override, PATH, then the active venv."""
+    """Resolve a scanner binary: env var override, PATH, active venv, or repo bin."""
     override = os.environ.get(env_var)
     if override and Path(override).exists():
         return override
@@ -53,6 +53,9 @@ def find_binary(name: str, env_var: str) -> Optional[str]:
     in_venv = Path(sys.prefix) / "bin" / name
     if in_venv.exists():
         return str(in_venv)
+    repo_bin = Path(__file__).resolve().parent.parent / "bin" / name
+    if repo_bin.exists():
+        return str(repo_bin)
     return None
 
 
@@ -87,7 +90,9 @@ def run_semgrep(repo_path: Path) -> List[dict]:
             binary, "scan",
             "--config", str(_SEMGREP_RULES),
             "--json", "--quiet", "--no-rewrite-rule-ids",
+            "--no-git-ignore",
             "--exclude", "venv", "--exclude", "data", "--exclude", "__pycache__",
+            "--exclude", "node_modules",
             ".",
         ],
         cwd=repo_path,
@@ -338,6 +343,70 @@ def scan_repo(
                 logger.exception("Failed to normalize %s result: %r", name, raw)
     findings.sort(key=lambda f: (f.file_path, f.line_number, f.tool_source))
     return findings
+
+
+# ---------------------------------------------------------------------------
+# Module 11 — Incremental Scanning (file hash change detection)
+# ---------------------------------------------------------------------------
+
+def compute_file_hashes(repo_path: Path) -> Dict[str, str]:
+    """Compute sha256 hashes for all non-ignored source files in the repository."""
+    import hashlib
+
+    repo_path = Path(repo_path).resolve()
+    hashes = {}
+    for p in repo_path.rglob("*"):
+        if not p.is_file():
+            continue
+        if any(part in SCAN_SKIP_DIRS for part in p.parts):
+            continue
+        rel = p.relative_to(repo_path).as_posix()
+        try:
+            hashes[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
+        except OSError:
+            continue
+    return hashes
+
+
+def scan_repo_incremental(
+    repo_path: Path,
+    previous_findings: List[Finding],
+    previous_hashes: Dict[str, str],
+    scanners: Iterable[str] = ("semgrep", "bandit", "gitleaks"),
+) -> Tuple[List[Finding], Dict[str, str]]:
+    """Incremental scan reusing unchanged file findings.
+
+    1. Computes current file hashes.
+    2. Identifies added, modified, and deleted files.
+    3. Retains cached findings for completely unchanged files.
+    4. Updates findings for modified/added files and removes deleted ones.
+    """
+    repo_path = Path(repo_path).resolve()
+    current_hashes = compute_file_hashes(repo_path)
+
+    changed_or_added = {
+        path for path, h in current_hashes.items()
+        if path not in previous_hashes or previous_hashes[path] != h
+    }
+    deleted = set(previous_hashes.keys()) - set(current_hashes.keys())
+
+    if not changed_or_added and not deleted:
+        logger.info("Incremental scan: zero files changed, reusing all %d findings", len(previous_findings))
+        return list(previous_findings), current_hashes
+
+    # Keep findings from files that did not change
+    retained_findings = [
+        f for f in previous_findings
+        if f.file_path in current_hashes and f.file_path not in changed_or_added
+    ]
+
+    # Rescan repository
+    fresh_findings = scan_repo(repo_path, scanners=scanners)
+    new_targeted = [f for f in fresh_findings if f.file_path in changed_or_added]
+
+    merged = retained_findings + new_targeted
+    merged.sort(key=lambda f: (f.file_path, f.line_number, f.tool_source))
+    return merged, current_hashes
 
 
 if __name__ == "__main__":  # manual: python -m codesage.scanning <repo>

@@ -25,6 +25,11 @@ const logLine = (event) => {
   switch (event.type) {
     case "run_started":
       return { text: `▶ Scan started — ${event.repo}`, kind: "info" };
+    case "repo_ingested":
+      return {
+        text: `Repository cloned: ${event.branch || "default branch"} (${event.technologies?.primary_language || "multi-language"}, ${event.technologies?.total_files || 0} files)`,
+        kind: "ok",
+      };
     case "findings_discovered":
       return { text: `Scanners surfaced ${event.count} findings`, kind: "info" };
     case "stage":
@@ -66,6 +71,11 @@ const emptyNodes = () =>
 
 const initialState = {
   scanId: null,
+  repo: null,
+  branch: null,
+  commitSha: null,
+  repositoryMetadata: null,
+  technologies: null,
   runStatus: "idle",
   nodes: emptyNodes(),
   particles: {},
@@ -106,11 +116,19 @@ export function reduceEvent(state, event) {
   switch (event.type) {
     case "run_started":
       next.runStatus = "running";
+      next.repo = event.repo || state.repo;
       next.findings = [];
       next.prs = [];
       next.counts = {};
       next.selectedFindingId = null;
       resetRunVisuals();
+      break;
+
+    case "repo_ingested":
+      next.repositoryMetadata = event.metadata || null;
+      next.technologies = event.technologies || null;
+      next.branch = event.branch || null;
+      next.commitSha = event.commit_sha || null;
       break;
 
     case "stage": {
@@ -221,11 +239,21 @@ export function ScanSessionProvider({ children }) {
   }, []);
 
   const start = useCallback(
-    async (repoUrl, githubRepo) => {
+    async (repoUrl, options = {}) => {
+      const githubRepo = typeof options === "string" ? options : options.githubRepo;
+      const scanners = typeof options === "object" ? options.scanners : undefined;
+      const branch = typeof options === "object" ? options.branch : undefined;
+      const githubToken = typeof options === "object" ? options.githubToken : undefined;
+
       if (closeWs.current) closeWs.current();
-      setState({ ...initialState, runStatus: "starting" });
+      setState({
+        ...initialState,
+        runStatus: "starting",
+        repo: repoUrl,
+        branch: branch || null,
+      });
       try {
-        const { scan_id } = await startScan(repoUrl, githubRepo);
+        const { scan_id } = await startScan(repoUrl, githubRepo, scanners, branch, githubToken);
         scanIdRef.current = scan_id;
         setState((prev) => ({ ...prev, scanId: scan_id }));
         closeWs.current = connectEvents(scan_id, handleEvent, null, () => {

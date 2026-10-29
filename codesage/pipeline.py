@@ -27,10 +27,18 @@ from pathlib import Path
 from typing import Optional, TypedDict
 
 from codesage.context import ChunkStore, extract_code_context
-from codesage.ingestion import clone_repo, detect_language
+from codesage.ingestion import (
+    clone_repo,
+    detect_language,
+    detect_repository_technologies,
+    get_commit_sha,
+    get_github_repo_metadata,
+    validate_github_url,
+)
 from codesage.llm import BaseLLM
 from codesage.patching import PatchError, generate_patch
 from codesage.schemas import CodeContext, Finding, Patch, TriageResult, VerificationResult
+
 from codesage.scanning import scan_repo
 from codesage.triage import TriageError, triage_finding
 from codesage.verification import (
@@ -87,8 +95,12 @@ def _completed_entry(finding: Finding, status: str, **extra) -> dict:
     entry = {
         "finding_id": finding.id,
         "file_path": finding.file_path,
+        "line_number": finding.line_number,
         "cwe_id": finding.cwe_id,
+        "severity": finding.severity,
         "tool_source": finding.tool_source,
+        "raw_message": finding.raw_message,
+        "code_snippet": finding.code_snippet,
         "status": status,
         "completed_at": round(time.time(), 3),
     }
@@ -100,8 +112,6 @@ def build_pipeline(config: PipelineConfig):
     """Compile the LangGraph StateGraph for one configured run."""
     from langgraph.graph import END, START, StateGraph
 
-    verifier = Verifier(Path(config.repo_input), backend=config.backend)
-
     # ------------------------------------------------------------------
     # Node functions (each returns a partial state update)
     # ------------------------------------------------------------------
@@ -109,14 +119,58 @@ def build_pipeline(config: PipelineConfig):
     def ingestion_node(state: PipelineState) -> dict:
         logger.info("[node:ingestion] enter repo_url=%r", state["repo_url"])
         repo_input = state["repo_url"]
+        branch = config.base_branch
+        repo_meta = None
+        technologies = None
+
         if Path(repo_input).expanduser().is_dir():
             repo_path = str(Path(repo_input).expanduser().resolve())
             logger.info("Using local repository at %s", repo_path)
+            technologies = detect_repository_technologies(Path(repo_path))
+            commit_sha = get_commit_sha(Path(repo_path))
+            repo_meta = {
+                "name": Path(repo_path).name,
+                "owner": "local",
+                "full_name": Path(repo_path).name,
+                "default_branch": branch or "main",
+                "is_private": False,
+                "commit_sha": commit_sha,
+            }
         else:
-            repo_path = str(clone_repo(repo_input))
-        language = detect_language(Path(repo_path))
-        logger.info("[node:ingestion] exit repo_path=%r language=%s", repo_path, language)
-        return {"repo_path": repo_path}
+            if "github.com" in repo_input:
+                github_val = validate_github_url(repo_input)
+                owner, repo_name = github_val["owner"], github_val["repo"]
+                if not branch and github_val.get("extracted_branch"):
+                    branch = github_val["extracted_branch"]
+                try:
+                    repo_meta = get_github_repo_metadata(owner, repo_name, token=config.github_token)
+                    if not branch:
+                        branch = str(repo_meta.get("default_branch") or "main")
+                except Exception as exc:
+                    logger.warning("Could not fetch GitHub metadata: %s", exc)
+                    repo_meta = {
+                        "name": repo_name,
+                        "owner": owner,
+                        "full_name": f"{owner}/{repo_name}",
+                        "default_branch": branch or "main",
+                        "is_private": False,
+                    }
+            cloned_path = clone_repo(repo_input, branch=branch, token=config.github_token)
+            repo_path = str(cloned_path)
+            commit_sha = get_commit_sha(cloned_path)
+            if repo_meta:
+                repo_meta["commit_sha"] = commit_sha
+            technologies = detect_repository_technologies(cloned_path)
+
+        language = technologies.get("dominant_language", "unknown") if technologies else "unknown"
+        logger.info("[node:ingestion] exit repo_path=%r language=%s branch=%s", repo_path, language, branch)
+        return {
+            "repo_path": repo_path,
+            "repo_metadata": repo_meta,
+            "technologies": technologies,
+            "branch": branch,
+        }
+
 
     def scanning_node(state: PipelineState) -> dict:
         logger.info("[node:scanning] enter repo_path=%r scanners=%s", state["repo_path"], config.scanners)
@@ -209,9 +263,11 @@ def build_pipeline(config: PipelineConfig):
 
     def verify_node(state: PipelineState) -> dict:
         patch = state["patch"]
+        active_repo_path = Path(state.get("repo_path") or config.repo_input)
+        active_verifier = Verifier(active_repo_path, backend=config.backend)
         logger.info("[node:verify] enter finding=%r backend=%s patched_len=%d",
-                    state["current_finding"].id, verifier.backend.name, len(patch.patched_code))
-        result = verifier.verify(state["current_finding"], patch)
+                    state["current_finding"].id, active_verifier.backend.name, len(patch.patched_code))
+        result = active_verifier.verify(state["current_finding"], patch)
         update = {"verification_result": result}
         if not result.passed:
             update["retry_count"] = state.get("retry_count", 0) + 1
@@ -221,6 +277,7 @@ def build_pipeline(config: PipelineConfig):
                     result.tests_passed, state.get("retry_count", 0),
                     (result.failure_reason or "")[:120])
         return update
+
 
     def pr_node(state: PipelineState) -> dict:
         finding, patch, triage = state["current_finding"], state["patch"], state["triage_result"]

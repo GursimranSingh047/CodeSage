@@ -29,3 +29,9 @@ httpx>=0.27,<0.28   # TestClient WebSocket support
 
 # Testing
 pytest>=8,<9
+
+# Environment & Configuration
+python-dotenv>=1.0,<2
+
+# LLM Providers (OpenRouter, OpenAI)
+openai>=1.0,<3

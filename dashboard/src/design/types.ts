@@ -79,6 +79,27 @@ export type ScanRunState = {
   };
   events: ActivityEvent[];
   findings: Finding[];
+  repositoryMetadata?: {
+    owner?: string;
+    repo?: string;
+    full_name?: string;
+    default_branch?: string;
+    description?: string;
+    stars?: number;
+    forks?: number;
+    open_issues?: number;
+    private?: boolean;
+    html_url?: string;
+  };
+  technologies?: {
+    primary_language?: string;
+    languages?: Record<string, number>;
+    frameworks?: string[];
+    total_files?: number;
+    total_size_mb?: number;
+  };
+  counts?: Record<string, number>;
+  scanId?: string;
 };
 
 /** Stage schedule for the mock engine (ms per stage). */

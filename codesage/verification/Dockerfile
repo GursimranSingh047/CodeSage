@@ -15,4 +15,9 @@ RUN apt-get update \
        | tar xz -C /usr/local/bin gitleaks \
     && rm -rf /var/lib/apt/lists/*
 
+RUN useradd -u 1000 -m -s /bin/bash sandbox
+
 WORKDIR /workspace
+RUN chown -R sandbox:sandbox /workspace
+
+USER sandbox

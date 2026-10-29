@@ -157,23 +157,39 @@ def extract_code_context(
         raise ContextError(f"File not found for finding {finding.id}: {file_path}")
 
     source = file_path.read_bytes()
-    tree = _parse(source)
-    root = tree.root_node
+    is_python = file_path.suffix.lower() == ".py"
+    root = None
     line0 = max(0, finding.line_number - 1)
+    enclosing = ""
+    start_line = None
+    self_chunk_id = None
+    imports: List[str] = []
 
-    smallest = _smallest_node_containing(root, line0)
-    definition = _nearest_function_or_class(smallest)
-
-    if definition is not None and definition is not root:
-        enclosing = _node_text(definition, source)
-        start_line = definition.start_point.row + 1
-        self_chunk_id = f"{finding.file_path}:{start_line}"
+    if is_python:
+        try:
+            tree = _parse(source)
+            root = tree.root_node
+            smallest = _smallest_node_containing(root, line0)
+            definition = _nearest_function_or_class(smallest)
+            if definition is not None and definition is not root:
+                enclosing = _node_text(definition, source)
+                start_line = definition.start_point.row + 1
+                self_chunk_id = f"{finding.file_path}:{start_line}"
+            else:
+                enclosing = _fallback_window(source, line0)
+            imports = _module_imports(root, source)
+        except Exception as exc:
+            logger.debug("Tree-sitter parse failed for %s, falling back to window: %s", file_path, exc)
+            enclosing = _fallback_window(source, line0)
     else:
-        # Module-level finding (e.g. a hardcoded constant): no enclosing
-        # function exists, so fall back to a source window around the line.
+        # Non-Python files (JS, TS, Go, Java, Dockerfile, etc.): safe window fallback
         enclosing = _fallback_window(source, line0)
-        start_line = None
-        self_chunk_id = None
+
+    # Redact raw secret from snippet if tool_source is gitleaks or secret detected
+    if finding.tool_source == "gitleaks" and finding.code_snippet:
+        secret_val = finding.code_snippet.strip()
+        if secret_val and secret_val in enclosing:
+            enclosing = enclosing.replace(secret_val, "[REDACTED_SECRET]")
 
     query_text = enclosing or finding.code_snippet
     related: List[str] = []
@@ -187,9 +203,10 @@ def extract_code_context(
     return CodeContext(
         finding_id=finding.id,
         enclosing_function=enclosing,
-        imports=_module_imports(root, source),
+        imports=imports,
         related_chunks=related,
     )
+
 
 
 def extract_chunks(repo_path: Path) -> List[dict]:

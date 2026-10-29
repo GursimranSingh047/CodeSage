@@ -52,8 +52,8 @@ GITLEAKS_RESULT_LEGACY = {
     "EndLine": 10,
     "StartColumn": 17,
     "EndColumn": 58,
-    "Match": 'STRIPE_API_KEY = "TEST_STRIPE_API_KEY"',
-    "Secret": "TEST_STRIPE_API_KEY",
+    "Match": 'API_KEY = "demo_secret_token_placeholder_xyz"',
+    "Secret": "demo_secret_token_placeholder_xyz",
     "File": "payments.py",
     "Entropy": 3.5,
     "Fingerprint": "payments.py:generic-api-key:10",
@@ -63,7 +63,7 @@ GITLEAKS_RESULT_CAMEL = {
     "ruleID": "generic-api-key",
     "startLine": 10,
     "endLine": 10,
-    "match": 'STRIPE_API_KEY = "TEST_STRIPE_API_KEY"',
+    "match": 'API_KEY = "demo_secret_token_placeholder_xyz"',
     "file": "payments.py",
     "fingerprint": "payments.py:generic-api-key:10",
 }
@@ -133,7 +133,7 @@ def test_normalize_gitleaks_legacy_keys():
     assert finding.severity == "high"  # gitleaks has no severity; secrets default high
     assert finding.cwe_id is None
     assert "generic-api-key" in finding.raw_message
-    assert "sk_live_" in finding.code_snippet
+    assert "demo_secret_token" in finding.code_snippet
 
 
 def test_normalize_gitleaks_camelcase_keys_gte_8_19():

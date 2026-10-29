@@ -19,7 +19,7 @@ const STEPS: Array<{ id: AgentId; name: string; icon: typeof Search; result: str
 ];
 
 export default function AgentsAtWork() {
-  const { run, flowPhase } = useScanFlow();
+  const { run, flowPhase, isDemo } = useScanFlow();
   const navigate = useNavigate();
   const allDone = flowPhase === "completed";
 
@@ -43,8 +43,14 @@ export default function AgentsAtWork() {
           <span className="grid h-8 w-8 place-items-center rounded-md bg-mint font-display text-sm font-bold text-black">CS</span>
           <span className="font-display text-lg font-semibold">CodeSage</span>
         </div>
-        <span className="notch-tr inline-flex items-center gap-1.5 border border-amber-brand/40 bg-amber-brand/10 px-4 py-1.5 text-[12px] font-semibold text-amber-brand">
-          Demo Mode
+        <span
+          className={`notch-tr inline-flex items-center gap-1.5 px-4 py-1.5 text-[12px] font-semibold ${
+            isDemo
+              ? "border border-amber-brand/40 bg-amber-brand/10 text-amber-brand"
+              : "border border-mint/40 bg-mint/10 text-mint"
+          }`}
+        >
+          {isDemo ? "Demo Mode" : "Live Scan"}
         </span>
       </header>
 
@@ -55,6 +61,12 @@ export default function AgentsAtWork() {
           A multi-agent security pipeline is cloning, scanning, triaging, and fixing{" "}
           <span className="font-mono text-ink">{run.repo}</span>.
         </p>
+        {run.technologies && (
+          <p className="mt-2 font-mono text-[13px] text-mint/90">
+            Stack: {run.technologies.primary_language || "Multi-language"}
+            {run.technologies.frameworks?.length ? ` (${run.technologies.frameworks.join(", ")})` : ""} · {run.technologies.total_files || 0} files indexed
+          </p>
+        )}
       </div>
 
       <div className="relative z-10 mx-auto max-w-3xl space-y-4 px-6 pb-24">

@@ -66,9 +66,19 @@ def evaluate(
                 tn += 1
 
     all_ids = {v.id for v in PLANTED_VULNERABILITIES}
+    
+    # Calculate raw scanner detection capability independent of triage
+    scanner_detected_vulns = set()
+    for finding in findings:
+        vid = match_finding_to_vuln(finding)
+        if vid:
+            scanner_detected_vulns.add(vid)
+
     missed = sorted(all_ids - covered)
     precision = tp / (tp + fp) if (tp + fp) else 0.0
     recall = len(covered) / len(all_ids) if all_ids else 0.0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+    scanner_recall = len(scanner_detected_vulns) / len(all_ids) if all_ids else 0.0
 
     return {
         "tp": tp,
@@ -77,6 +87,9 @@ def evaluate(
         "fn_findings": fn_findings,
         "precision": precision,
         "recall": recall,
+        "f1": f1,
+        "scanner_recall": scanner_recall,
+        "scanner_detected_vulns": sorted(scanner_detected_vulns),
         "covered_vulns": sorted(covered),
         "missed_vulns": missed,
         "triage_failed": sorted(failed),

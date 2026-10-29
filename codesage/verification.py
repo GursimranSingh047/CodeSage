@@ -111,7 +111,19 @@ def apply_patch_to_copy(repo_path: Path, patch: Patch) -> Path:
         raise PatchNotApplicable(
             f"original_code matches {occurrences} times in {relative_file}; refusing an ambiguous patch"
         )
-    target.write_text(content.replace(patch.original_code, patch.patched_code, 1), encoding="utf-8")
+    patched_text = content.replace(patch.original_code, patch.patched_code, 1)
+
+    # Validate Python syntax if modifying a Python source file
+    if target.suffix == ".py":
+        import ast
+        try:
+            ast.parse(patched_text, filename=str(relative_file))
+        except SyntaxError as exc:
+            raise PatchNotApplicable(
+                f"patched code introduces Python syntax error in {relative_file}: {exc}"
+            ) from exc
+
+    target.write_text(patched_text, encoding="utf-8")
     logger.info("[verify:apply] exit wrote patched file to disk: %s (workspace=%s)",
                 target, workdir)
     return workdir
@@ -141,6 +153,9 @@ def _clean_scan(scan_results, finding: Finding) -> Tuple[bool, Optional[str]]:
 
 class LocalBackend:
     """Non-sandboxed subprocess fallback (CODESAGE_VERIFY_BACKEND=local).
+
+    WARNING: LocalBackend runs commands on the host system without process,
+    network, or filesystem isolation. Use DockerBackend for untrusted repositories.
 
     Scans reuse the Module 2 runner subprocesses against the workspace copy.
     Tests run with the original repo's venv interpreter when one exists (the
@@ -181,6 +196,8 @@ class LocalBackend:
             raise VerificationError(f"interpreter missing: {exc}") from exc
         if proc.returncode == 0:
             return True, None
+        if proc.returncode == 5:  # pytest exit code 5: no tests collected
+            return False, "no test suite found in repository (verification inconclusive)"
         tail = (proc.stdout or proc.stderr or "").strip().splitlines()
         return False, f"test suite failed: {tail[-1] if tail else f'exit {proc.returncode}'}"
 
@@ -224,14 +241,19 @@ class DockerBackend:
                 if "error" in entry:
                     raise VerificationError(f"image build failed: {entry['error']}")
 
-    def _run(self, command: List[str], workdir: Path, writable: bool) -> str:
+    def _run(self, command: List[str], workdir: Path, writable: bool, network_enabled: bool = False) -> str:
         self.ensure_image()
         container = self.client.containers.run(
             self.image,
             command,
             volumes={str(workdir): {"bind": "/workspace", "mode": "rw" if writable else "ro"}},
             working_dir="/workspace",
-            network_disabled=False,  # pip install needs network in the test run
+            network_disabled=not network_enabled,
+            mem_limit="1g",
+            pids_limit=100,
+            nano_cpus=1000000000,
+            cap_drop=["ALL"],
+            security_opt=["no-new-privileges:true"],
             detach=True,
         )
         try:
@@ -259,7 +281,7 @@ class DockerBackend:
         else:
             raise VerificationError(f"unknown scanner tool: {tool!r}")
 
-        output = self._run(command, workdir, writable=False)
+        output = self._run(command, workdir, writable=False, network_enabled=False)
         try:
             start = output.index("{")
             payload = json.loads(output[start:output.rindex("}") + 1])
@@ -274,11 +296,13 @@ class DockerBackend:
         output = self._run(
             ["sh", "-c",
              "pip install -q -r requirements.txt 2>/dev/null; python -m pytest -q"],
-            workdir, writable=True,
+            workdir, writable=True, network_enabled=True,
         )
         exit_line = output.splitlines()[0] if output else "exit=1"
         if exit_line == "exit=0":
             return True, None
+        if "no tests ran" in output or exit_line == "exit=5":
+            return False, "no test suite found in repository (verification inconclusive)"
         tail = [l for l in output.splitlines() if l.strip()][-3:]
         return False, "test suite failed in sandbox: " + " | ".join(tail)
 

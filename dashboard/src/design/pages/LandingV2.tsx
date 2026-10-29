@@ -5,6 +5,7 @@ import { useTheme } from "../../theme";
 import HeroNodeField from "../components/HeroNodeField";
 import RotatingWord from "../components/RotatingWord";
 import HowItWorks from "../components/HowItWorks";
+import GitHubRepoScanner from "../../components/GitHubRepoScanner";
 
 export default function LandingV2() {
   const { theme, toggle } = useTheme();
@@ -71,19 +72,10 @@ export default function LandingV2() {
           Autonomous AI agents that audit your codebase, generate verified fixes, and open pull
           requests — so nothing slips through unreviewed.
         </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to="/pipeline"
-            className="inline-flex items-center gap-2 rounded-lg bg-mint px-6 py-3 text-[14.5px] font-bold text-black transition hover:bg-[#a5ffd0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-mint"
-          >
-            Try it for free <ArrowRight size={15} />
-          </Link>
-          <Link
-            to="/pipeline?demo=1"
-            className="inline-flex items-center gap-2 rounded-lg border border-edge bg-surface px-6 py-3 text-[14.5px] font-semibold text-ink transition hover:border-edge-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-mint"
-          >
-            View Demo Repo
-          </Link>
+
+        {/* GitHub Repository Scanner */}
+        <div className="mx-auto mt-10 max-w-2xl text-left">
+          <GitHubRepoScanner />
         </div>
       </section>
 
