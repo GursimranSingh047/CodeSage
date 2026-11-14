@@ -207,7 +207,12 @@ def create_pull_request(
         title = title_for(patch, triage)
         body = generate_pr_body(patch, triage, verification)
         pr = _api(
-            lambda: repo.create_git(base=base, head=branch, title=title, body=body),
+            lambda: repo.create_pull(
+                title=title,
+                body=body,
+                base=base,
+                head=branch,
+            ),
             "opening pull request",
         )
     except PRError:

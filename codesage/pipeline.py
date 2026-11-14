@@ -24,22 +24,26 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict, Union
 
 from codesage.context import ChunkStore, extract_code_context
 from codesage.ingestion import (
+    RepoWorkspace,
     clone_repo,
     detect_language,
     detect_repository_technologies,
     get_commit_sha,
     get_github_repo_metadata,
+    safe_cleanup_workspace,
+    validate_git_branch,
     validate_github_url,
+    validate_local_path,
 )
 from codesage.llm import BaseLLM
 from codesage.patching import PatchError, generate_patch
 from codesage.schemas import CodeContext, Finding, Patch, TriageResult, VerificationResult
 
-from codesage.scanning import scan_repo
+from codesage.scanning import compute_file_hashes, scan_repo, scan_repo_incremental
 from codesage.triage import TriageError, triage_finding
 from codesage.verification import (
     LocalBackend,
@@ -66,6 +70,10 @@ class PipelineState(TypedDict, total=False):
     verification_result: Optional[VerificationResult]
     retry_count: int
     completed_findings: list
+    workspace: Optional[object]
+    file_hashes: Optional[dict]
+    previous_hashes: Optional[dict]
+    previous_findings: Optional[list]
 
 
 @dataclass
@@ -81,6 +89,10 @@ class PipelineConfig:
     base_branch: Optional[str] = None
     max_retries: int = 2
     scanners: tuple = ("semgrep", "bandit", "gitleaks")
+    is_cancelled: Optional[Callable[[], bool]] = None
+    previous_hashes: Optional[Dict[str, str]] = None
+    previous_findings: Optional[List[Union[Finding, dict]]] = None
+    storage: Optional[object] = None
 
     def __post_init__(self):
         if self.backend is None:
@@ -89,6 +101,52 @@ class PipelineConfig:
 
 class PipelineError(RuntimeError):
     """The pipeline cannot even start (e.g. repository ingestion failed)."""
+
+
+class PipelineCancelled(Exception):
+    """Raised when scan cancellation is requested during pipeline execution."""
+
+
+def _validate_incremental_data(
+    raw_hashes: Any,
+    raw_findings: Any,
+) -> Optional[Tuple[Dict[str, str], List[Finding]]]:
+    """Validate and deserialize previous scan data for incremental scanning.
+
+    Returns (hashes, parsed_findings) if valid, or None if invalid (requiring full scan).
+    """
+    if raw_hashes is None or not isinstance(raw_hashes, dict):
+        return None
+    if not raw_hashes:
+        return None
+
+    for k, v in raw_hashes.items():
+        if not isinstance(k, str) or not k or not isinstance(v, str) or not v:
+            logger.warning("Invalid file hash entry (%r: %r), falling back to full scan", k, v)
+            return None
+
+    if raw_findings is None or not isinstance(raw_findings, (list, tuple)):
+        logger.warning("Invalid previous findings type (%r), falling back to full scan", type(raw_findings))
+        return None
+
+    parsed_findings: List[Finding] = []
+    for item in raw_findings:
+        if isinstance(item, Finding):
+            parsed_findings.append(item)
+        elif isinstance(item, dict):
+            try:
+                d = dict(item)
+                if "id" not in d and "finding_id" in d:
+                    d["id"] = d["finding_id"]
+                parsed_findings.append(Finding.model_validate(d))
+            except Exception as exc:
+                logger.warning("Failed to deserialize previous finding (%r): %s", item, exc)
+                return None
+        else:
+            logger.warning("Unknown finding object type in previous findings: %r", type(item))
+            return None
+
+    return raw_hashes, parsed_findings
 
 
 def _completed_entry(finding: Finding, status: str, **extra) -> dict:
@@ -112,40 +170,54 @@ def build_pipeline(config: PipelineConfig):
     """Compile the LangGraph StateGraph for one configured run."""
     from langgraph.graph import END, START, StateGraph
 
+    def _check_cancelled() -> bool:
+        if config.is_cancelled is not None:
+            try:
+                return bool(config.is_cancelled())
+            except Exception:
+                return False
+        return False
+
     # ------------------------------------------------------------------
     # Node functions (each returns a partial state update)
     # ------------------------------------------------------------------
 
     def ingestion_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before ingestion")
         logger.info("[node:ingestion] enter repo_url=%r", state["repo_url"])
         repo_input = state["repo_url"]
-        branch = config.base_branch
+        branch = validate_git_branch(config.base_branch)
         repo_meta = None
         technologies = None
+        ws = None
 
-        if Path(repo_input).expanduser().is_dir():
-            repo_path = str(Path(repo_input).expanduser().resolve())
-            logger.info("Using local repository at %s", repo_path)
-            technologies = detect_repository_technologies(Path(repo_path))
-            commit_sha = get_commit_sha(Path(repo_path))
-            repo_meta = {
-                "name": Path(repo_path).name,
-                "owner": "local",
-                "full_name": Path(repo_path).name,
-                "default_branch": branch or "main",
-                "is_private": False,
-                "commit_sha": commit_sha,
-            }
-        else:
-            if "github.com" in repo_input:
+        is_remote = repo_input.startswith(("http://", "https://", "git@", "ssh://")) or "://" in repo_input
+
+        try:
+            if not is_remote:
+                ws = RepoWorkspace(repo_input, is_temporary=False)
+                repo_path = str(ws.path)
+                logger.info("Using local repository at %s", repo_path)
+                technologies = detect_repository_technologies(ws.path)
+                commit_sha = get_commit_sha(ws.path)
+                repo_meta = {
+                    "name": ws.path.name,
+                    "owner": "local",
+                    "full_name": ws.path.name,
+                    "default_branch": branch or "main",
+                    "is_private": False,
+                    "commit_sha": commit_sha,
+                }
+            else:
                 github_val = validate_github_url(repo_input)
                 owner, repo_name = github_val["owner"], github_val["repo"]
                 if not branch and github_val.get("extracted_branch"):
-                    branch = github_val["extracted_branch"]
+                    branch = validate_git_branch(github_val["extracted_branch"])
                 try:
                     repo_meta = get_github_repo_metadata(owner, repo_name, token=config.github_token)
                     if not branch:
-                        branch = str(repo_meta.get("default_branch") or "main")
+                        branch = validate_git_branch(str(repo_meta.get("default_branch") or "main"))
                 except Exception as exc:
                     logger.warning("Could not fetch GitHub metadata: %s", exc)
                     repo_meta = {
@@ -155,31 +227,121 @@ def build_pipeline(config: PipelineConfig):
                         "default_branch": branch or "main",
                         "is_private": False,
                     }
-            cloned_path = clone_repo(repo_input, branch=branch, token=config.github_token)
-            repo_path = str(cloned_path)
-            commit_sha = get_commit_sha(cloned_path)
-            if repo_meta:
-                repo_meta["commit_sha"] = commit_sha
-            technologies = detect_repository_technologies(cloned_path)
+                ws = RepoWorkspace(
+                    repo_input,
+                    branch=branch,
+                    token=config.github_token,
+                    is_temporary=True,
+                    metadata=repo_meta,
+                )
+                repo_path = str(ws.path)
+                commit_sha = get_commit_sha(ws.path)
+                if repo_meta:
+                    repo_meta["commit_sha"] = commit_sha
+                technologies = detect_repository_technologies(ws.path)
 
-        language = technologies.get("dominant_language", "unknown") if technologies else "unknown"
-        logger.info("[node:ingestion] exit repo_path=%r language=%s branch=%s", repo_path, language, branch)
-        return {
-            "repo_path": repo_path,
-            "repo_metadata": repo_meta,
-            "technologies": technologies,
-            "branch": branch,
-        }
+            language = technologies.get("dominant_language", "unknown") if technologies else "unknown"
+            logger.info("[node:ingestion] exit repo_path=%r language=%s branch=%s", repo_path, language, branch)
+            return {
+                "repo_path": repo_path,
+                "repo_metadata": repo_meta,
+                "technologies": technologies,
+                "branch": branch,
+                "workspace": ws,
+            }
+        except Exception:
+            if ws is not None:
+                try:
+                    ws.cleanup()
+                except Exception as exc:
+                    logger.warning("Failed to clean up workspace after ingestion failure: %s", exc)
+            raise
 
 
     def scanning_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before scanning")
         logger.info("[node:scanning] enter repo_path=%r scanners=%s", state["repo_path"], config.scanners)
-        findings = scan_repo(Path(state["repo_path"]), scanners=config.scanners)
+
+        repo_p = Path(state["repo_path"]).resolve()
+
+        # Check for previous scan data:
+        # Priority:
+        # 1. state["previous_hashes"] and state["previous_findings"]
+        # 2. config.previous_hashes and config.previous_findings
+        # 3. config.storage (lookup latest completed run)
+        raw_prev_hashes = state.get("previous_hashes")
+        raw_prev_findings = state.get("previous_findings")
+
+        if raw_prev_hashes is None:
+            raw_prev_hashes = config.previous_hashes
+        if raw_prev_findings is None:
+            raw_prev_findings = config.previous_findings
+
+        if raw_prev_hashes is None and config.storage is not None:
+            try:
+                target_url = state.get("repo_url") or config.repo_input
+                target_branch = state.get("branch") or config.base_branch
+                if hasattr(config.storage, "get_latest_completed_run"):
+                    prev_run = config.storage.get_latest_completed_run(target_url, branch=target_branch)
+                    if prev_run:
+                        raw_prev_hashes = prev_run.get("file_hashes")
+                        raw_prev_findings = prev_run.get("findings") or prev_run.get("completed")
+            except Exception as exc:
+                logger.warning("[node:scanning] Failed to query previous scan from storage: %s", exc)
+
+        validated = _validate_incremental_data(raw_prev_hashes, raw_prev_findings)
+
+        findings = None
+        file_hashes = None
+
+        if validated is not None:
+            prev_hashes, prev_findings = validated
+            logger.info(
+                "[node:scanning] attempting incremental scan (previous_hashes=%d, previous_findings=%d)",
+                len(prev_hashes),
+                len(prev_findings),
+            )
+            try:
+                if not repo_p.is_dir():
+                    raise FileNotFoundError(f"Repository path is not a directory: {repo_p}")
+                findings, file_hashes = scan_repo_incremental(
+                    repo_p,
+                    previous_findings=prev_findings,
+                    previous_hashes=prev_hashes,
+                    scanners=config.scanners,
+                )
+                logger.info("[node:scanning] incremental scan succeeded: %d findings", len(findings))
+            except Exception as exc:
+                logger.warning(
+                    "[node:scanning] incremental scan failed, falling back to full scan: %s",
+                    exc,
+                )
+                findings = None
+                file_hashes = None
+
+        # Fallback to full scan if incremental was not used or failed
+        if findings is None:
+            logger.info("[node:scanning] performing full scan")
+            try:
+                findings = scan_repo(repo_p, scanners=config.scanners)
+            except Exception as exc:
+                logger.error("[node:scanning] full scan failed: %s", exc)
+                findings = []
+
+            try:
+                file_hashes = compute_file_hashes(repo_p)
+            except Exception as exc:
+                logger.warning("[node:scanning] Failed to compute file hashes: %s", exc)
+                file_hashes = {}
+
         logger.info("[node:scanning] exit findings=%d ids=%s", len(findings),
                     [f.id for f in findings][:6])
-        return {"findings": findings, "current_finding": None}
+        return {"findings": findings, "current_finding": None, "file_hashes": file_hashes}
 
     def next_finding_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before processing next finding")
         queue = list(state.get("findings", []))
         logger.info("[node:next_finding] enter queue=%d", len(queue))
         if not queue:
@@ -198,6 +360,8 @@ def build_pipeline(config: PipelineConfig):
         }
 
     def context_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before context extraction")
         finding = state["current_finding"]
         logger.info("[node:context] enter finding=%r", finding.id)
         context = extract_code_context(finding, Path(state["repo_path"]), store=config.store)
@@ -206,6 +370,8 @@ def build_pipeline(config: PipelineConfig):
         return {"context": context}
 
     def triage_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before triage")
         finding, context = state["current_finding"], state["context"]
         logger.info("[node:triage] enter finding=%r", finding.id)
         try:
@@ -232,6 +398,8 @@ def build_pipeline(config: PipelineConfig):
         return {"triage_result": result}
 
     def patch_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before patch generation")
         finding, context = state["current_finding"], state["context"]
         triage = state["triage_result"]
         attempt = state.get("retry_count", 0) + 1
@@ -262,6 +430,8 @@ def build_pipeline(config: PipelineConfig):
         return {"patch": patch}
 
     def verify_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before verification")
         patch = state["patch"]
         active_repo_path = Path(state.get("repo_path") or config.repo_input)
         active_verifier = Verifier(active_repo_path, backend=config.backend)
@@ -280,6 +450,8 @@ def build_pipeline(config: PipelineConfig):
 
 
     def pr_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before PR creation")
         finding, patch, triage = state["current_finding"], state["patch"], state["triage_result"]
         attempts = state.get("retry_count", 0) + 1
         logger.info("[node:pr] enter finding=%r attempts=%d github_repo=%r",
@@ -314,6 +486,8 @@ def build_pipeline(config: PipelineConfig):
         ]}
 
     def human_review_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before human review")
         finding = state["current_finding"]
         result = state.get("verification_result")
         triage = state.get("triage_result")
@@ -360,6 +534,7 @@ def build_pipeline(config: PipelineConfig):
             decision = "human_review"
         logger.info("[edge:verify] passed=%r retry_count=%d max_retries=%d -> %s",
                     passed, retries, config.max_retries, decision)
+        return decision
         return decision
 
     # ------------------------------------------------------------------

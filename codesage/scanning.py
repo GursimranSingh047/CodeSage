@@ -18,8 +18,9 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from codesage.ingestion import run_command_with_process_group
 from codesage.schemas import Finding
 
 logger = logging.getLogger(__name__)
@@ -65,11 +66,9 @@ def find_binary(name: str, env_var: str) -> Optional[str]:
 
 def _run(command: List[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
     try:
-        proc = subprocess.run(
+        proc = run_command_with_process_group(
             command,
             cwd=str(cwd),
-            capture_output=True,
-            text=True,
             timeout=timeout,
         )
     except FileNotFoundError as exc:
@@ -370,7 +369,7 @@ def compute_file_hashes(repo_path: Path) -> Dict[str, str]:
 
 def scan_repo_incremental(
     repo_path: Path,
-    previous_findings: List[Finding],
+    previous_findings: List[Union[Finding, dict]],
     previous_hashes: Dict[str, str],
     scanners: Iterable[str] = ("semgrep", "bandit", "gitleaks"),
 ) -> Tuple[List[Finding], Dict[str, str]]:
@@ -382,6 +381,25 @@ def scan_repo_incremental(
     4. Updates findings for modified/added files and removes deleted ones.
     """
     repo_path = Path(repo_path).resolve()
+    if not repo_path.is_dir():
+        raise FileNotFoundError(f"Not a directory: {repo_path}")
+    if not isinstance(previous_hashes, dict):
+        raise ValueError(f"previous_hashes must be a dict, got {type(previous_hashes).__name__}")
+    if not isinstance(previous_findings, (list, tuple)):
+        raise ValueError(f"previous_findings must be a list/tuple, got {type(previous_findings).__name__}")
+
+    normalized_previous: List[Finding] = []
+    for item in previous_findings:
+        if isinstance(item, Finding):
+            normalized_previous.append(item)
+        elif isinstance(item, dict):
+            d = dict(item)
+            if "id" not in d and "finding_id" in d:
+                d["id"] = d["finding_id"]
+            normalized_previous.append(Finding.model_validate(d))
+        else:
+            raise ValueError(f"Invalid finding item: {item!r}")
+
     current_hashes = compute_file_hashes(repo_path)
 
     changed_or_added = {
@@ -391,20 +409,23 @@ def scan_repo_incremental(
     deleted = set(previous_hashes.keys()) - set(current_hashes.keys())
 
     if not changed_or_added and not deleted:
-        logger.info("Incremental scan: zero files changed, reusing all %d findings", len(previous_findings))
-        return list(previous_findings), current_hashes
+        logger.info("Incremental scan: zero files changed, reusing all %d findings", len(normalized_previous))
+        return list(normalized_previous), current_hashes
 
     # Keep findings from files that did not change
     retained_findings = [
-        f for f in previous_findings
+        f for f in normalized_previous
         if f.file_path in current_hashes and f.file_path not in changed_or_added
     ]
 
-    # Rescan repository
-    fresh_findings = scan_repo(repo_path, scanners=scanners)
-    new_targeted = [f for f in fresh_findings if f.file_path in changed_or_added]
+    # Rescan repository only if files were modified or added
+    if changed_or_added:
+        fresh_findings = scan_repo(repo_path, scanners=scanners)
+        new_targeted = [f for f in fresh_findings if f.file_path in changed_or_added]
+        merged = retained_findings + new_targeted
+    else:
+        merged = retained_findings
 
-    merged = retained_findings + new_targeted
     merged.sort(key=lambda f: (f.file_path, f.line_number, f.tool_source))
     return merged, current_hashes
 

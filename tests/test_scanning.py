@@ -131,3 +131,87 @@ def test_full_scan_unified_schema():
     for expected in ("shop.py", "payments.py", "tasks.py", "files.py", "admin.py", "main.py"):
         assert expected in flagged_files, f"{expected} finding missing"
     assert "auth.py" not in flagged_files  # documents the known miss (V3)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6: Security Scanner Process Hardening & Process-Group Timeout Tests
+# ---------------------------------------------------------------------------
+
+def test_scanner_run_terminates_process_group_on_timeout(tmp_path):
+    """Prove that _run uses process-group termination, ensuring that
+    a scanner that spawns child processes does not leave orphan processes on timeout.
+    """
+    import os
+    import sys
+    import time
+
+    pid_file = tmp_path / "child.pid"
+    script = (
+        "import subprocess, sys, time\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
+        f"with open({str(pid_file)!r}, 'w') as f:\n"
+        "    f.write(str(p.pid))\n"
+        "p.wait()\n"
+    )
+
+    with pytest.raises(ScannerError, match="timed out after 1s"):
+        scanning._run([sys.executable, "-c", script], cwd=tmp_path, timeout=1)
+
+    assert pid_file.exists(), "child pid file was not created"
+    child_pid = int(pid_file.read_text().strip())
+
+    # Wait briefly for OS signal delivery
+    time.sleep(0.3)
+
+    # Verify the child process was terminated with the process group
+    with pytest.raises(ProcessLookupError):
+        os.kill(child_pid, 0)
+
+
+def test_scanner_run_missing_binary_raises_scanner_error(tmp_path):
+    """Verify that a missing binary raises ScannerError('Binary not found: ...')."""
+    with pytest.raises(ScannerError, match="Binary not found: nonexistent_scanner_binary_xyz"):
+        scanning._run(["nonexistent_scanner_binary_xyz"], cwd=tmp_path, timeout=5)
+
+
+def test_scan_repo_skips_timed_out_scanner(tmp_path, monkeypatch):
+    """Verify that if a scanner times out during scan_repo, it is skipped and other scanners continue."""
+    def timeout_runner(_repo):
+        raise ScannerError("semgrep scan timed out after 900s")
+
+    def ok_runner(_repo):
+        return [{
+            "RuleID": "generic-api-key", "File": "payments.py", "StartLine": 10,
+            "Match": 'KEY = "sk_live_x"',
+        }]
+
+    monkeypatch.setitem(scanning._RUNNERS, "semgrep", timeout_runner)
+    monkeypatch.setitem(scanning._RUNNERS, "gitleaks", ok_runner)
+
+    findings = scan_repo(tmp_path, scanners=("semgrep", "gitleaks"))
+    assert len(findings) == 1
+    assert findings[0].tool_source == "gitleaks"
+
+
+def test_scanner_runners_invoke_process_group_run(tmp_path, monkeypatch):
+    """Verify that semgrep, bandit, and gitleaks all invoke _run (and thus run_command_with_process_group)."""
+    import sys
+    calls = []
+
+    def mock_run(command, cwd, timeout):
+        calls.append((command[0], timeout))
+        return subprocess.CompletedProcess(args=command, returncode=0, stdout="{}", stderr="")
+
+    import subprocess
+    monkeypatch.setattr(scanning, "_run", mock_run)
+    monkeypatch.setattr(scanning, "find_binary", lambda name, env: f"/usr/bin/{name}")
+
+    scanning.run_semgrep(tmp_path)
+    scanning.run_bandit(tmp_path)
+    scanning.run_gitleaks(tmp_path)
+
+    assert len(calls) == 3
+    assert calls[0] == ("/usr/bin/semgrep", scanning.SCAN_TIMEOUT_SECONDS)
+    assert calls[1] == ("/usr/bin/bandit", scanning.SCAN_TIMEOUT_SECONDS)
+    assert calls[2] == ("/usr/bin/gitleaks", scanning.SCAN_TIMEOUT_SECONDS)
+

@@ -59,3 +59,19 @@ class ScanStorage:
             except Exception as exc:
                 logger.warning("Skipping corrupted scan file %s: %s", file_path, exc)
         return sorted(runs, key=lambda r: r.get("started", 0), reverse=True)
+
+    def get_latest_completed_run(
+        self, repo_url: str, branch: Optional[str] = None
+    ) -> Optional[dict]:
+        """Find the most recent completed scan for the given repo_url and optional branch."""
+        target_url = str(repo_url).rstrip("/")
+        for run in self.list_runs():
+            if run.get("status") not in ("complete", "completed"):
+                continue
+            run_url = str(run.get("repo_url", "")).rstrip("/")
+            if run_url != target_url:
+                continue
+            if branch is not None and run.get("branch") and run.get("branch") != branch:
+                continue
+            return run
+        return None

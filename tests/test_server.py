@@ -6,6 +6,7 @@ no network needed.
 """
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -87,9 +88,23 @@ def _factory_for(repo: Path):
 
 @pytest.fixture(scope="module")
 def client(fixture_repo):
-    app = create_app(config_factory=_factory_for(fixture_repo))
-    with TestClient(app) as test_client:
-        yield test_client, fixture_repo
+    old_allow = os.environ.get("CODESAGE_ALLOW_LOCAL_PATHS")
+    old_root = os.environ.get("CODESAGE_ALLOWED_LOCAL_DIR")
+    os.environ["CODESAGE_ALLOW_LOCAL_PATHS"] = "1"
+    os.environ["CODESAGE_ALLOWED_LOCAL_DIR"] = str(fixture_repo.parent)
+    try:
+        app = create_app(config_factory=_factory_for(fixture_repo))
+        with TestClient(app) as test_client:
+            yield test_client, fixture_repo
+    finally:
+        if old_allow is not None:
+            os.environ["CODESAGE_ALLOW_LOCAL_PATHS"] = old_allow
+        else:
+            os.environ.pop("CODESAGE_ALLOW_LOCAL_PATHS", None)
+        if old_root is not None:
+            os.environ["CODESAGE_ALLOWED_LOCAL_DIR"] = old_root
+        else:
+            os.environ.pop("CODESAGE_ALLOWED_LOCAL_DIR", None)
 
 
 def _start_scan(test_client, fixture_repo) -> str:

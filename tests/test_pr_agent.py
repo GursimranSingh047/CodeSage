@@ -1,7 +1,7 @@
 """Unit tests for Module 7: GitHub PR agent — fully offline via a fake API.
 
 The fakes mimic the PyGithub surface the agent uses (get_branch, get_contents,
-create_git_ref, update_file, create_git, get_git_ref/delete) and record every
+create_git_ref, update_file, create_pull, get_git_ref/delete) and record every
 call so assertions read like a conversation log. Real github.GithubException
 objects are raised to exercise the design.md section 6 error mapping.
 """
@@ -142,7 +142,7 @@ class FakeRepo:
         self.commits.append((path, message, content, branch))
         self.files[path] = content
 
-    def create_git(self, base, head, title, body):
+    def create_pull(self, base=None, head=None, title=None, body=None, **kwargs):
         if self.fail_on_create_pr is not None:
             raise self.fail_on_create_pr
         pr = FakePR(len(self.prs) + 1, base, head, title, body)
@@ -385,3 +385,115 @@ def test_verified_loop_outcome_feeds_pr_agent(fixture_repo, command_finding):
     assert branch_name_for(patch).startswith(BRANCH_PREFIX)
     body = generate_pr_body(patch, triage_like, outcome.result)
     assert "**CWE-78**" in body and "90%" in body and "PASSED" in body
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for PyGithub create_pull integration
+# ---------------------------------------------------------------------------
+
+def test_pr_agent_uses_create_pull_and_never_calls_create_git():
+    """Regression test: FakeRepo adheres to PyGithub API by exposing create_pull
+    and NOT exposing create_git. Verifies create_pull is called with correct parameters.
+    """
+    repo = FakeRepo({"tasks.py": REMOTE_FILE})
+    assert not hasattr(repo, "create_git"), "FakeRepo should not define non-existent create_git"
+    assert hasattr(repo, "create_pull"), "FakeRepo must define create_pull"
+
+    patch = make_patch()
+    triage = make_triage(patch)
+    verification = make_verification(True)
+
+    info = create_pull_request(repo, patch, triage, verification)
+
+    assert info["pr_number"] == 1
+    assert len(repo.prs) == 1
+    assert repo.prs[0].base == "main"
+    assert repo.prs[0].head == branch_name_for(patch)
+    assert repo.prs[0].title == "Fix CWE-502 in tasks.py (CodeSage)"
+
+
+def test_regression_real_pygithub_repository_spec():
+    """Regression test: verify create_pull_request against a strict mock autospec'd
+    from github.Repository.Repository.
+
+    Real PyGithub Repository defines create_pull() but NOT create_git().
+    If create_git() is called, create_autospec immediately raises AttributeError.
+    """
+    import unittest.mock as mock
+    from github.Repository import Repository
+
+    mock_repo = mock.create_autospec(Repository, instance=True)
+    assert not hasattr(mock_repo, "create_git")
+    assert hasattr(mock_repo, "create_pull")
+
+    mock_repo.default_branch = "main"
+
+    mock_branch = mock.MagicMock()
+    mock_branch.commit.sha = "base-sha"
+    mock_repo.get_branch.return_value = mock_branch
+
+    mock_contents = mock.MagicMock()
+    mock_contents.path = "tasks.py"
+    mock_contents.sha = "blob-sha"
+    mock_contents.decoded_content = REMOTE_FILE.encode("utf-8")
+    mock_repo.get_contents.return_value = mock_contents
+
+    mock_pr = mock.MagicMock()
+    mock_pr.number = 42
+    mock_pr.html_url = "https://github.com/fake/test-target-repo/pull/42"
+    mock_repo.create_pull.return_value = mock_pr
+
+    patch = make_patch()
+    triage = make_triage(patch)
+    verification = make_verification(True)
+
+    info = create_pull_request(mock_repo, patch, triage, verification)
+
+    assert info["pr_number"] == 42
+    assert info["pr_url"] == "https://github.com/fake/test-target-repo/pull/42"
+    assert info["branch"] == branch_name_for(patch)
+
+    mock_repo.create_pull.assert_called_once_with(
+        title=title_for(patch, triage),
+        body=generate_pr_body(patch, triage, verification),
+        base="main",
+        head=branch_name_for(patch),
+    )
+
+
+def test_regression_repo_missing_create_pull_fails():
+    """Regression test: A mock having only create_git fails because create_pull is required."""
+    class BrokenRepo:
+        default_branch = "main"
+
+        def __init__(self, files):
+            self.branches = {"main": "base-sha"}
+            self.files = dict(files)
+            self.deleted_refs = []
+
+        def get_branch(self, name):
+            return FakeBranch(self.branches[name])
+
+        def get_contents(self, path, ref=None):
+            return FakeContents(path, self.files[path])
+
+        def create_git_ref(self, ref, sha):
+            pass
+
+        def update_file(self, *args, **kwargs):
+            pass
+
+        def create_git(self, base, head, title, body):
+            return FakePR(1, base, head, title, body)
+
+        def get_git_ref(self, branch):
+            return FakeRef(self.deleted_refs, branch)
+
+    broken = BrokenRepo({"tasks.py": REMOTE_FILE})
+    assert hasattr(broken, "create_git")
+    assert not hasattr(broken, "create_pull")
+
+    patch = make_patch()
+    with pytest.raises(PRError, match="has no attribute 'create_pull'"):
+        create_pull_request(broken, patch, make_triage(patch), make_verification(True))
+
