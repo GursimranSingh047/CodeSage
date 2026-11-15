@@ -814,11 +814,13 @@ def clone_repo(
     # arguments, or clone URLs! URL-scoping guarantees headers are not leaked to
     # arbitrary third-party hosts upon HTTP redirects.
     if is_github and effective_token and clean_clone_url.startswith("https://"):
+        import base64
+        basic_auth = base64.b64encode(f"x-access-token:{effective_token}".encode("utf-8")).decode("utf-8")
         git_env["GIT_CONFIG_COUNT"] = "2"
         git_env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraHeader"
-        git_env["GIT_CONFIG_VALUE_0"] = f"Authorization: Bearer {effective_token}"
+        git_env["GIT_CONFIG_VALUE_0"] = f"Authorization: Basic {basic_auth}"
         git_env["GIT_CONFIG_KEY_1"] = "http.https://www.github.com/.extraHeader"
-        git_env["GIT_CONFIG_VALUE_1"] = f"Authorization: Bearer {effective_token}"
+        git_env["GIT_CONFIG_VALUE_1"] = f"Authorization: Basic {basic_auth}"
 
     logger.info("Cloning repository into %s", dest)
     try:

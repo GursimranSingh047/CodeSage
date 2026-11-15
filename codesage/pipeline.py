@@ -152,6 +152,7 @@ def _validate_incremental_data(
 def _completed_entry(finding: Finding, status: str, **extra) -> dict:
     entry = {
         "finding_id": finding.id,
+        "id": finding.id,
         "file_path": finding.file_path,
         "line_number": finding.line_number,
         "cwe_id": finding.cwe_id,
@@ -480,8 +481,13 @@ def build_pipeline(config: PipelineConfig):
                 _completed_entry(finding, "pr_failed", failure_reason=str(exc), attempts=attempts)
             ]}
         return {"completed_findings": state.get("completed_findings", []) + [
-            _completed_entry(finding, "verified_pr_opened", pr_url=info["pr_url"],
-                             branch=info["branch"], attempts=attempts,
+            _completed_entry(finding, "verified_pr_opened",
+                             pr_url=info["pr_url"],
+                             pr_number=info["pr_number"],
+                             branch=info["branch"],
+                             base_branch=info["base_branch"],
+                             title=info["title"],
+                             attempts=attempts,
                              confidence=triage.confidence)
         ]}
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Shield } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface WorkspaceEmptyStateProps {
@@ -9,10 +9,10 @@ interface WorkspaceEmptyStateProps {
 
 export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({ onFocusInput }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center max-w-lg mx-auto">
-      {/* Animated Security Illustration */}
-      <div className="relative w-40 h-40 mb-8 flex items-center justify-center">
-        {/* Pulsing Concentric Radar Rings */}
+    <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center max-w-lg mx-auto select-none">
+      {/* Animated Security Graphic */}
+      <div className="relative w-36 h-36 mb-6 flex items-center justify-center">
+        {/* Pulsing Concentric Rings */}
         <motion.div
           animate={{
             scale: [1, 1.25, 1],
@@ -23,23 +23,10 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({ onFocu
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute inset-0 rounded-full border border-accent-orange/20 bg-accent-orange/5"
-        />
-        <motion.div
-          animate={{
-            scale: [1.1, 1.45, 1.1],
-            opacity: [0.1, 0.25, 0.1],
-          }}
-          transition={{
-            duration: 4,
-            delay: 0.8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -inset-4 rounded-full border border-dashed border-accent-violet/20"
+          className="absolute inset-0 rounded-full border border-[#8CFF8C]/30 bg-[#8CFF8C]/5"
         />
 
-        {/* Orbiting Security Node */}
+        {/* Orbiting Green Node */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{
@@ -49,55 +36,31 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({ onFocu
           }}
           className="absolute inset-0 flex items-start justify-center"
         >
-          <div className="w-2.5 h-2.5 rounded-full bg-accent-orange shadow-[0_0_10px_rgba(249,115,22,0.8)] -translate-y-1" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#8CFF8C] shadow-[0_0_10px_rgba(140,255,140,0.8)] -translate-y-1" />
         </motion.div>
 
-        {/* Counter Orbiting Violet Node */}
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{
-            duration: 22,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="absolute inset-0 flex items-end justify-center"
-        >
-          <div className="w-2 h-2 rounded-full bg-accent-violet shadow-[0_0_8px_rgba(139,92,246,0.8)] translate-y-1" />
-        </motion.div>
-
-        {/* Handcrafted Center Shield Graphic */}
-        <div className="relative z-10 w-20 h-20 rounded-2xl glass-panel-elevated border border-white/[0.12] flex items-center justify-center shadow-glass-elevated">
-          <svg
-            className="w-10 h-10 text-accent-orange filter drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2" />
-          </svg>
+        {/* Center Shield Graphic */}
+        <div className="relative z-10 w-16 h-16 rounded-2xl bg-[#151716] border border-[#292D2A] flex items-center justify-center shadow-elevated">
+          <Shield className="w-8 h-8 text-[#8CFF8C]" />
         </div>
       </div>
 
       {/* Copy */}
-      <h3 className="text-xl sm:text-2xl font-sans font-semibold text-white tracking-tight mb-2.5">
+      <h3 className="text-xl sm:text-2xl font-sans font-bold text-[#F4F5F4] tracking-tight mb-2">
         Your security workspace is empty.
       </h3>
-      <p className="text-sm text-sage-400 font-sans max-w-sm leading-relaxed mb-6">
-        Connect a repository and run your first scan.
+      <p className="text-xs sm:text-sm text-[#A5AAA6] font-sans max-w-sm leading-relaxed mb-6">
+        Target a repository above to initiate automated vulnerability scanning and verified remediation.
       </p>
 
       {/* CTA Button */}
       {onFocusInput && (
         <Button
-          variant="outline"
+          variant="primary"
           size="sm"
           onClick={onFocusInput}
-          icon={<ArrowDown className="w-4 h-4 text-accent-orange" />}
-          className="group hover:border-accent-orange/40"
+          icon={<ArrowDown className="w-4 h-4 text-[#080909]" />}
+          className="font-sans font-bold text-xs"
         >
           <span>Configure Target Repository</span>
         </Button>

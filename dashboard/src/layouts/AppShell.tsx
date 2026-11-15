@@ -26,7 +26,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-sage-950 text-sage-100 flex relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#080909] text-[#F4F5F4] flex relative overflow-x-hidden font-sans">
       {/* Background Atmosphere */}
       <AmbientBackground />
 
@@ -50,7 +50,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileSidebarOpen(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-[#080909]/80 backdrop-blur-sm z-40 lg:hidden"
             />
             <motion.div
               initial={{ x: -280 }}
@@ -75,6 +75,8 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <TopBar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
           onToggleSidebar={() => setMobileSidebarOpen((prev) => !prev)}
           isScanning={isScanning}
           statusText={statusText}

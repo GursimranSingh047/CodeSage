@@ -6,20 +6,15 @@ import {
   RefreshCw,
   GitBranch,
   Clock,
-  ShieldAlert,
   ArrowUpDown,
   FileText,
   Terminal,
-  Layers,
-  ChevronRight,
   Filter,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { ScanHistoryItem, ScanStatus } from "@/types";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { cardEntrance, staggerContainer } from "@/animations/variants";
 import { clsx } from "clsx";
 
@@ -64,16 +59,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
     fetchHistory();
   }, []);
 
-  // Filter & Sort Logic
   const filteredAndSortedScans = useMemo(() => {
     return scans
       .filter((scan) => {
-        // Status filter
         if (statusFilter !== "all" && scan.status !== statusFilter) {
           return false;
         }
 
-        // Search query
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchesRepo = scan.repo_url.toLowerCase().includes(q);
@@ -125,11 +117,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const getStatusBadge = (status: ScanStatus) => {
     switch (status) {
       case "complete":
-        return <Badge variant="success" size="sm" dot>Complete</Badge>;
+        return <Badge variant="green" size="sm" dot>Complete</Badge>;
       case "running":
-        return <Badge variant="violet" size="sm" dot>Running</Badge>;
+        return <Badge variant="green" size="sm" dot>Running</Badge>;
       case "queued":
-        return <Badge variant="warning" size="sm">Queued</Badge>;
+        return <Badge variant="neutral" size="sm">Queued</Badge>;
       case "cancelled":
         return <Badge variant="neutral" size="sm">Cancelled</Badge>;
       case "failed":
@@ -144,20 +136,20 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-6 max-w-7xl mx-auto"
     >
       {/* 1. Header Banner */}
       <motion.div variants={cardEntrance} className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-accent-teal/30 bg-accent-teal/10 text-accent-teal text-xs font-mono font-medium">
-              <History className="w-3.5 h-3.5" />
-              <span>Durable Audit Archives</span>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#292D2A] bg-[#101211] text-[#8CFF8C] text-xs font-mono font-medium">
+              <span className="w-2 h-2 rounded-full bg-[#8CFF8C] animate-pulse" />
+              <span>Audit Run Archives</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight text-[#F4F5F4]">
               Scan Run History
             </h1>
-            <p className="text-xs text-sage-400 font-sans max-w-2xl">
+            <p className="text-xs text-[#A5AAA6] font-sans max-w-2xl">
               Chronological log of autonomous vulnerability scans, incremental hashes, and cryptographic verification receipts.
             </p>
           </div>
@@ -177,7 +169,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                 variant="primary"
                 size="sm"
                 onClick={onStartNewScan}
-                icon={<Terminal className="w-3.5 h-3.5" />}
+                icon={<Terminal className="w-3.5 h-3.5 fill-current" />}
               >
                 New Scan
               </Button>
@@ -187,62 +179,62 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="p-3.5 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+          <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
               Total Recorded Scans
             </span>
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-accent-teal" />
-              <span className="text-xl font-mono font-bold text-white">{scans.length}</span>
+              <History className="w-4 h-4 text-[#A5AAA6]" />
+              <span className="text-xl font-mono font-bold text-[#F4F5F4]">{scans.length}</span>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3.5 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+          <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
               Completed Audits
             </span>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <span className="text-xl font-mono font-bold text-emerald-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#8CFF8C]" />
+              <span className="text-xl font-mono font-bold text-[#8CFF8C]">
                 {scans.filter((s) => s.status === "complete").length}
               </span>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3.5 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+          <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
               Active / Queued
             </span>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent-violet animate-pulse" />
-              <span className="text-xl font-mono font-bold text-accent-violet">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#8CFF8C] animate-pulse" />
+              <span className="text-xl font-mono font-bold text-[#8CFF8C]">
                 {scans.filter((s) => s.status === "running" || s.status === "queued").length}
               </span>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3.5 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+          <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
               Terminated / Failed
             </span>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-              <span className="text-xl font-mono font-bold text-rose-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF5555]" />
+              <span className="text-xl font-mono font-bold text-[#FF5555]">
                 {scans.filter((s) => s.status === "failed" || s.status === "cancelled").length}
               </span>
             </div>
-          </Card>
+          </div>
         </div>
       </motion.div>
 
       {/* 2. Controls, Search, Sort & Filters Bar */}
       <motion.div
         variants={cardEntrance}
-        className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 rounded-2xl glass-panel border border-white/[0.06]"
+        className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 rounded-2xl surface-card border border-[#292D2A]"
       >
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-sage-500">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#666C68]">
             <Search className="w-3.5 h-3.5" />
           </div>
           <input
@@ -250,13 +242,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search repository, branch, or scan ID..."
-            className="w-full pl-9 pr-3 py-1.5 bg-sage-900 border border-white/[0.08] rounded-xl text-sage-200 placeholder-sage-500 font-mono text-xs focus:outline-none focus:border-accent-teal/50"
+            className="w-full pl-9 pr-3 py-1.5 bg-[#151716] border border-[#292D2A] rounded-xl text-[#F4F5F4] placeholder-[#666C68] font-mono text-xs focus:outline-none focus:border-[#8CFF8C] focus:ring-1 focus:ring-[#8CFF8C]"
           />
         </div>
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 font-mono text-xs">
-          <div className="flex items-center gap-1 text-sage-400 text-[11px] mr-1">
+          <div className="flex items-center gap-1 text-[#666C68] text-[11px] mr-1">
             <Filter className="w-3 h-3" />
             <span>Filter:</span>
           </div>
@@ -266,10 +258,10 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               type="button"
               onClick={() => setStatusFilter(st)}
               className={clsx(
-                "px-2.5 py-1 rounded-lg capitalize font-medium transition-all",
+                "px-2.5 py-1 rounded-lg capitalize font-medium transition-all cursor-pointer",
                 statusFilter === st
-                  ? "bg-accent-teal/20 text-accent-teal border border-accent-teal/30"
-                  : "bg-sage-900/60 text-sage-400 hover:text-white border border-white/[0.04]"
+                  ? "bg-[#16351F] text-[#8CFF8C] border border-[#8CFF8C]/35 font-semibold"
+                  : "bg-[#151716] text-[#A5AAA6] hover:text-[#F4F5F4] border border-[#292D2A]"
               )}
             >
               {st}
@@ -279,14 +271,14 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
         {/* Sort Controls */}
         <div className="flex items-center gap-2 font-mono text-xs">
-          <div className="flex items-center gap-1 text-sage-400 text-[11px]">
+          <div className="flex items-center gap-1 text-[#666C68] text-[11px]">
             <ArrowUpDown className="w-3 h-3" />
             <span>Sort:</span>
           </div>
           <select
             value={sortField}
             onChange={(e) => setSortField(e.target.value as SortField)}
-            className="px-2.5 py-1 rounded-lg bg-sage-900 border border-white/[0.08] text-sage-200 text-xs focus:outline-none focus:border-accent-teal/50"
+            className="px-2.5 py-1.5 rounded-xl bg-[#151716] border border-[#292D2A] text-[#F4F5F4] text-xs focus:outline-none focus:border-[#8CFF8C] cursor-pointer"
           >
             <option value="date">Date & Time</option>
             <option value="findings">Findings Count</option>
@@ -295,7 +287,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           <button
             type="button"
             onClick={() => setSortOrder((o) => (o === "desc" ? "asc" : "desc"))}
-            className="px-2 py-1 rounded-lg bg-sage-900 border border-white/[0.08] text-sage-300 hover:text-white text-xs"
+            className="px-2.5 py-1.5 rounded-xl bg-[#151716] border border-[#292D2A] text-[#A5AAA6] hover:text-[#F4F5F4] text-xs cursor-pointer"
             title="Toggle sort direction"
           >
             {sortOrder === "desc" ? "↓ Desc" : "↑ Asc"}
@@ -305,26 +297,25 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
       {/* 3. History Table / Card Stream */}
       {loading ? (
-        <Card className="p-12 text-center space-y-3 font-mono">
-          <RefreshCw className="w-6 h-6 animate-spin text-accent-teal mx-auto" />
-          <p className="text-xs text-sage-400">Loading audit history records from persistent storage...</p>
-        </Card>
+        <div className="surface-card rounded-2xl p-12 text-center space-y-3 font-mono border border-[#292D2A]">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#8CFF8C] mx-auto" />
+          <p className="text-xs text-[#A5AAA6]">Loading audit history records from persistent storage...</p>
+        </div>
       ) : scans.length === 0 ? (
-        <Card className="p-12">
-          <EmptyState
-            icon={<History className="w-8 h-8 text-accent-teal" />}
-            title="No Scans Recorded"
-            description="Your audit timeline is empty. Launch your first autonomous scan to monitor security history."
-            actionLabel="Start Security Audit"
-            onAction={onStartNewScan}
-          />
-        </Card>
-      ) : filteredAndSortedScans.length === 0 ? (
-        <Card className="p-10 text-center space-y-2 font-mono">
-          <ShieldAlert className="w-6 h-6 text-amber-400 mx-auto" />
-          <p className="text-sm font-sans font-semibold text-white">No scans match your search or filter.</p>
-          <p className="text-xs text-sage-400">Reset your filters to see all audit history entries.</p>
-        </Card>
+        <div className="surface-card rounded-2xl p-12 border border-[#292D2A] text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-[#151716] border border-[#292D2A] flex items-center justify-center text-[#8CFF8C] mx-auto">
+            <History className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-sans font-bold text-[#F4F5F4]">No Scans Recorded</h3>
+          <p className="text-xs text-[#A5AAA6] font-sans max-w-sm mx-auto">
+            Your audit timeline is empty. Launch your first autonomous scan to monitor security history.
+          </p>
+          {onStartNewScan && (
+            <Button variant="primary" size="sm" onClick={onStartNewScan}>
+              Start Security Audit
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {filteredAndSortedScans.map((scan) => {
@@ -342,85 +333,62 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               <motion.div
                 key={scan.scan_id}
                 variants={cardEntrance}
-                className="p-4 sm:p-5 rounded-2xl glass-panel-elevated border border-white/[0.08] hover:border-accent-teal/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-[#292D2A] hover:border-[#363C38] transition-all group"
               >
-                {/* Left: Metadata & Repository */}
-                <div className="flex items-start gap-4 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-sage-900 border border-white/[0.08] flex items-center justify-center text-sage-300 group-hover:text-accent-teal group-hover:border-accent-teal/30 transition-colors shrink-0 mt-0.5">
-                    <Terminal className="w-5 h-5" />
-                  </div>
-
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-white truncate max-w-sm">
-                        {repoDisplay}
-                      </span>
-                      {getStatusBadge(scan.status)}
-                      <span className="text-[11px] font-mono text-sage-500">
-                        ID: {scan.scan_id}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-sage-400">
-                      <span className="flex items-center gap-1">
-                        <GitBranch className="w-3.5 h-3.5 text-accent-orange" />
-                        <span>{scan.branch || "main"}</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-sage-500" />
-                        <span>{dateStr}</span>
-                      </span>
-                      <span className="text-sage-400">
-                        Duration: <span className="text-white font-medium">{duration}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Center / Right: Findings & Actions */}
-                <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.06]">
-                  {/* Findings Counter Pill */}
-                  <div className="px-3 py-1.5 rounded-xl bg-sage-950 border border-white/[0.06] font-mono text-xs flex items-center gap-2">
-                    <span className="text-sage-400">Findings:</span>
-                    <span
-                      className={clsx(
-                        "font-bold",
-                        findingsCount > 0 ? "text-amber-400" : "text-emerald-400"
-                      )}
-                    >
-                      {findingsCount}
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="font-mono text-sm font-bold text-[#F4F5F4] group-hover:text-[#8CFF8C] transition-colors">
+                      {repoDisplay}
+                    </span>
+                    {getStatusBadge(scan.status)}
+                    <span className="text-[11px] font-mono text-[#666C68]">
+                      ID: {scan.scan_id.slice(0, 8)}...
                     </span>
                   </div>
 
-                  {/* Actions */}
+                  <div className="flex items-center gap-4 text-xs font-mono text-[#A5AAA6]">
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="w-3.5 h-3.5 text-[#666C68]" />
+                      {scan.branch || "main"}
+                    </span>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#666C68]" />
+                      {dateStr}
+                    </span>
+                    <span>&bull;</span>
+                    <span>Duration: {duration}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-[#292D2A]">
+                  <div className="text-right font-mono text-xs">
+                    <span className="text-[#F4F5F4] font-bold">{findingsCount} findings</span>
+                    <span className="text-[10px] text-[#666C68] block">AST Verified</span>
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onViewReport(scan.scan_id)}
-                      icon={<FileText className="w-3.5 h-3.5" />}
-                      title="View Engineering Report"
-                    >
-                      Report
-                    </Button>
-
-                    <Button
                       variant="outline"
-                      size="sm"
+                      size="xs"
                       onClick={() => onViewFindings(scan.scan_id)}
-                      icon={<Layers className="w-3.5 h-3.5" />}
-                      title="View Findings"
                     >
                       Findings
                     </Button>
-
                     <Button
-                      variant="primary"
-                      size="sm"
+                      variant="outline"
+                      size="xs"
                       onClick={() => onSelectScan(scan.scan_id)}
-                      icon={<ChevronRight className="w-3.5 h-3.5" />}
                     >
                       Pipeline
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => onViewReport(scan.scan_id)}
+                      icon={<FileText className="w-3 h-3" />}
+                    >
+                      Report
                     </Button>
                   </div>
                 </div>

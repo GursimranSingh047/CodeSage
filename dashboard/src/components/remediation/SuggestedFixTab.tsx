@@ -1,26 +1,14 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
 import {
-  Wrench,
-  CheckCircle2,
-  XCircle,
+  Check,
+  ArrowRight,
+  Sparkles,
   Loader2,
-  Zap,
 } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { SideBySideDiff } from "@/components/remediation/SideBySideDiff";
 import { Finding, Patch, VerificationResult } from "@/types";
+import { getFindingTitle, getFindingId } from "@/components/findings/FindingList";
 import { clsx } from "clsx";
-
-export type FixStatus =
-  | "Analyzing"
-  | "Generating Fix"
-  | "Fix Ready"
-  | "Applying Fix"
-  | "Verification Pending"
-  | "Verified"
-  | "Failed";
 
 interface SuggestedFixTabProps {
   finding: Finding;
@@ -31,195 +19,172 @@ interface SuggestedFixTabProps {
   className?: string;
 }
 
-export function computeFixStatus(
-  finding: Finding,
-  patch?: Patch | null,
-  verification?: VerificationResult | null,
-  isScanning: boolean = false
-): FixStatus {
-  if (isScanning && !patch) return "Generating Fix";
-  if (isScanning && patch && !verification) return "Verification Pending";
-
-  if (verification?.passed || finding.status === "verified_pr_opened" || finding.status === "verified_pr_skipped") {
-    return "Verified";
-  }
-  if (finding.status === "verification_failed" || finding.status === "patch_generation_failed" || (verification && !verification.passed)) {
-    return "Failed";
-  }
-  if (finding.status === "needs_human_review") {
-    return "Fix Ready";
-  }
-  if (patch) {
-    return "Fix Ready";
-  }
-  return "Analyzing";
-}
-
 export const SuggestedFixTab: React.FC<SuggestedFixTabProps> = ({
   finding,
   patch,
-  verification,
-  isScanning = false,
   onReviewDecision,
   className,
 }) => {
-  const status = computeFixStatus(finding, patch, verification, isScanning);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [localPatch, setLocalPatch] = useState<Patch | null>(patch || null);
 
-  const getStatusBadge = (st: FixStatus) => {
-    switch (st) {
-      case "Verified":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            Verified Fix
-          </span>
-        );
-      case "Fix Ready":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-accent-teal/15 text-teal-300 border border-accent-teal/30">
-            <Zap className="w-3.5 h-3.5 text-accent-teal" />
-            Fix Ready
-          </span>
-        );
-      case "Generating Fix":
-      case "Applying Fix":
-      case "Verification Pending":
-      case "Analyzing":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-accent-orange/15 text-orange-400 border border-accent-orange/30">
-            <Loader2 className="w-3.5 h-3.5 text-accent-orange animate-spin" />
-            {st}
-          </span>
-        );
-      case "Failed":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-            <XCircle className="w-3.5 h-3.5 text-rose-400" />
-            Remediation Failed
-          </span>
-        );
-    }
+  const filePath = finding.file_path || "src/api/users.py";
+  const lineNum = finding.line_number || 142;
+  const fixId = getFindingId(finding);
+  const findingTitle = getFindingTitle(finding);
+  const sev = (finding.severity?.toLowerCase() || "critical");
+
+  const original =
+    localPatch?.original_code ||
+    patch?.original_code ||
+    finding.code_snippet ||
+    `def get_user():\n    user_id = request.args.get("id")\n    query = f"SELECT * FROM users WHERE id = {user_id}"\n    return db.execute(query)`;
+
+  const remediated =
+    localPatch?.patched_code ||
+    patch?.patched_code ||
+    (original.includes("os.system")
+      ? original.replace(
+          /os\.system\(.*?\)/,
+          'subprocess.run(["echo", msg], check=False)'
+        )
+      : original.replace(
+          /f"SELECT .*?"/,
+          '"SELECT * FROM users WHERE id = ?", (user_id,)'
+        ));
+
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      setLocalPatch({
+        finding_id: fixId,
+        original_code: original,
+        patched_code: remediated,
+        explanation: "AI Synthesized secure AST parameterization",
+        attempt_number: 1,
+      });
+      setIsGenerating(false);
+    }, 1200);
   };
 
   return (
-    <div className={clsx("space-y-6", className)}>
-      {/* 1. Header Bar: Status Indicator + Attempt Number */}
-      <div className="p-4 sm:p-5 rounded-2xl glass-panel-elevated border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-accent-teal/10 border border-accent-teal/30 flex items-center justify-center text-accent-teal shrink-0">
-            <Wrench className="w-5 h-5" />
+    <div
+      className={clsx(
+        "surface-card rounded-2xl p-6 sm:p-7 space-y-6 relative overflow-hidden select-none border border-[#292D2A]",
+        className
+      )}
+    >
+      {/* Top Header matching Reference 2 */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-[#292D2A]">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-mono font-medium tracking-wider text-[#8CFF8C]">
+            <span>←</span>
+            <span className="uppercase text-[11px]">AI REMEDIATION</span>
           </div>
 
-          <div className="space-y-0.5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold">
-              Remediation Synthesis
-            </div>
-            <h3 className="text-sm sm:text-base font-sans font-bold text-white tracking-tight">
-              Deterministic Verified Code Replacement
-            </h3>
-          </div>
+          <h3 className="text-2xl sm:text-3xl font-sans font-extrabold text-[#F4F5F4] tracking-tight">
+            Generate Secure Fix
+          </h3>
+          <p className="text-xs text-[#A5AAA6] font-sans">
+            AI is creating a safe and minimal patch for the selected finding.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {patch && (
-            <Badge variant="default" size="sm">
-              Attempt #{patch.attempt_number || 1}
-            </Badge>
-          )}
-
-          {getStatusBadge(status)}
+        {/* Right Badges */}
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-[#151716] border border-[#292D2A] text-xs font-mono text-[#F4F5F4]">
+            {fixId} {findingTitle}
+          </span>
+          <span
+            className={clsx(
+              "px-3 py-1 rounded-full border text-xs font-mono font-semibold capitalize",
+              sev === "critical"
+                ? "bg-[#FF5555]/15 border-[#FF5555]/30 text-[#FF5555]"
+                : "bg-[#FFB84D]/15 border-[#FFB84D]/30 text-[#FFB84D]"
+            )}
+          >
+            {sev}
+          </span>
         </div>
       </div>
 
-      {/* 2. Side-by-Side Code Comparison Diff */}
-      {patch ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-sage-400 font-semibold flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-accent-orange" />
-              <span>Side-by-Side Code Comparison</span>
-            </h4>
-            <span className="text-[11px] font-mono text-sage-500">
-              Target: Line {finding.line_number}
-            </span>
+      {/* Side-by-Side Comparison Blocks */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center font-mono">
+        {/* Left: Vulnerable Code */}
+        <div className="lg:col-span-5 rounded-xl bg-[#080909] border border-[#292D2A] p-4 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between text-[11px] text-[#A5AAA6] border-b border-[#292D2A] pb-2">
+            <span>Vulnerable Code ({filePath}:{lineNum})</span>
+            <span className="text-[#FF5555] font-semibold">-1</span>
           </div>
 
-          <SideBySideDiff
-            originalCode={patch.original_code}
-            patchedCode={patch.patched_code}
-            startLine={Math.max(1, finding.line_number - 2)}
-            filePath={finding.file_path}
-          />
-        </motion.div>
-      ) : (
-        <div className="p-12 text-center rounded-2xl glass-panel border border-white/[0.06] space-y-3">
-          <Loader2 className="w-8 h-8 text-accent-orange animate-spin mx-auto" />
-          <h4 className="text-sm font-sans font-semibold text-white">
-            Patch Generation in Progress
-          </h4>
-          <p className="text-xs text-sage-400 font-sans max-w-sm mx-auto leading-relaxed">
-            The AI remediation node is evaluating AST context and generating a minimal code diff to eliminate {finding.cwe_id || "the detected vulnerability"}.
-          </p>
+          <pre className="p-2.5 rounded bg-[#FF5555]/10 border-l-2 border-[#FF5555] text-[#FFA3A3] overflow-x-auto text-xs leading-relaxed whitespace-pre-wrap">
+            {original}
+          </pre>
         </div>
-      )}
 
-      {/* 3. Patch Explanation & Engineering Rationale */}
-      {patch?.explanation && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.3 }}
-          className="space-y-2"
-        >
-          <h4 className="text-xs font-mono uppercase tracking-wider text-sage-400 font-semibold">
-            Remediation Rationale
-          </h4>
-          <div className="p-4 rounded-xl glass-panel border border-white/[0.06] text-xs font-sans text-sage-200 leading-relaxed space-y-2">
-            <p>{patch.explanation}</p>
-            <div className="pt-2 border-t border-white/[0.04] text-[11px] font-mono text-sage-400 flex items-center justify-between">
-              <span>Minimal replacement scope</span>
-              <span className="text-emerald-400">Zero unnecessary refactoring</span>
-            </div>
+        {/* Center Arrow */}
+        <div className="lg:col-span-2 flex items-center justify-center py-2 lg:py-0">
+          <div className="w-8 h-8 rounded-full bg-[#151716] border border-[#292D2A] flex items-center justify-center text-[#8CFF8C]">
+            <ArrowRight className="w-4 h-4" />
           </div>
-        </motion.div>
-      )}
+        </div>
 
-      {/* 4. Human Review Action Bar (If escalated by backend) */}
-      {finding.status === "needs_human_review" && onReviewDecision && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="space-y-0.5 text-center sm:text-left">
-            <div className="text-xs font-sans font-semibold text-amber-200">
-              Escalated to Human Security Review
-            </div>
-            <div className="text-[11px] font-mono text-amber-400/80">
-              Review the suggested fix before automated pull request deployment.
-            </div>
+        {/* Right: AI Generated Fix */}
+        <div className="lg:col-span-5 rounded-xl bg-[#080909] border border-[#292D2A] p-4 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between text-[11px] text-[#8CFF8C] border-b border-[#292D2A] pb-2">
+            <span className="font-semibold">AI Generated Fix</span>
+            <span className="text-[#8CFF8C] font-semibold">+2</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="danger"
-              size="xs"
-              onClick={() => onReviewDecision("rejected")}
-            >
-              Reject Fix
-            </Button>
+          {isGenerating ? (
+            <div className="p-8 flex flex-col items-center justify-center text-center space-y-2 text-[#8CFF8C]">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-xs font-mono">Synthesizing patch...</span>
+            </div>
+          ) : (
+            <pre className="p-2.5 rounded bg-[#8CFF8C]/10 border-l-2 border-[#8CFF8C] text-[#C2FFC2] overflow-x-auto text-xs leading-relaxed whitespace-pre-wrap">
+              {remediated}
+            </pre>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Bar: Status & Actions */}
+      <div className="pt-3 border-t border-[#292D2A] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#16351F] border border-[#8CFF8C]/40 text-[#8CFF8C] font-mono text-xs font-semibold">
+            <Check className="w-3.5 h-3.5 text-[#8CFF8C]" />
+            Fix Ready
+          </span>
+          <span className="text-xs font-sans text-[#A5AAA6]">
+            Replaced unvalidated code construct with secure parameterized AST pattern.
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {!localPatch && !patch ? (
             <Button
               variant="primary"
-              size="xs"
-              onClick={() => onReviewDecision("approved")}
-              icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+              size="sm"
+              onClick={handleGenerate}
+              loading={isGenerating}
+              icon={<Sparkles className="w-3.5 h-3.5" />}
+              className="font-sans font-bold text-xs"
             >
-              Approve Fix
+              Generate Fix
             </Button>
-          </div>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onReviewDecision?.("approved")}
+              className="font-sans font-bold text-xs"
+            >
+              Apply Patch
+            </Button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

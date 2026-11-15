@@ -4,23 +4,17 @@ import { clsx } from "clsx";
 
 export interface CardProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode;
-  variant?: "default" | "elevated" | "subtle";
-  glow?: "orange" | "violet" | "teal" | "none";
+  variant?: "default" | "elevated" | "subtle" | "charcoal";
+  glow?: "green" | "amber" | "none";
   interactive?: boolean;
   className?: string;
 }
 
 const variantStyles = {
-  default: "glass-panel",
-  elevated: "glass-panel-elevated",
-  subtle: "glass-panel-subtle",
-};
-
-const glowStyles: Record<string, string> = {
-  orange: "hover:border-accent-orange/40 hover:shadow-glow-orange",
-  violet: "hover:border-accent-violet/40 hover:shadow-glow-violet",
-  teal: "hover:border-accent-teal/40 hover:shadow-glow-teal",
-  none: "",
+  default: "surface-card",
+  elevated: "surface-elevated",
+  subtle: "surface-recessed",
+  charcoal: "bg-[#101211] border border-[#292D2A]",
 };
 
 export const Card: React.FC<CardProps> = ({
@@ -34,10 +28,11 @@ export const Card: React.FC<CardProps> = ({
   return (
     <motion.div
       className={clsx(
-        "rounded-xl transition-all duration-300",
+        "rounded-2xl transition-all duration-200",
         variantStyles[variant],
-        interactive && "cursor-pointer hover:-translate-y-0.5",
-        glowStyles[glow],
+        interactive && "cursor-pointer hover:-translate-y-0.5 hover:border-[#363C38] hover:shadow-elevated",
+        (glow === "green" || glow === "amber") &&
+          "hover:border-[#8CFF8C]/50 hover:shadow-[0_0_24px_rgba(140,255,140,0.16)]",
         className
       )}
       {...props}

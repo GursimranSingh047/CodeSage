@@ -1,55 +1,53 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        sage: {
-          950: "#090a0d",
-          900: "#0e1117",
-          850: "#131720",
-          800: "#1a1f2c",
-          750: "#222838",
-          700: "#2d354a",
-          600: "#3e4964",
-          500: "#556385",
-          400: "#7e8ca8",
-          300: "#a3b0cc",
-          200: "#c8d3e6",
-          100: "#eef2fa",
-        },
-        accent: {
-          orange: "#f97316",
-          "orange-hover": "#ea580c",
-          "orange-muted": "rgba(249, 115, 22, 0.12)",
-          violet: "#8b5cf6",
-          "violet-hover": "#7c3aed",
-          "violet-muted": "rgba(139, 92, 246, 0.12)",
-          teal: "#14b8a6",
-          "teal-hover": "#0d9488",
-          "teal-muted": "rgba(20, 184, 166, 0.12)",
-          emerald: "#10b981",
-          "emerald-muted": "rgba(16, 185, 129, 0.12)",
-          rose: "#f43f5e",
-          "rose-muted": "rgba(244, 63, 94, 0.12)",
-          amber: "#f59e0b",
-          "amber-muted": "rgba(245, 158, 11, 0.12)",
+        // CodeSage Black + White + Green Identity System
+        cs: {
+          bg: "#080909",             // Main Background
+          secondary: "#101211",      // Secondary Background
+          surface: "#151716",        // Elevated Surface
+          border: "#292D2A",         // Technical Border
+          "border-light": "#363C38", // Hover / active border
+          text: "#F4F5F4",           // Primary text
+          muted: "#A5AAA6",          // Secondary text
+          dim: "#666C68",            // Muted text
+          green: {
+            DEFAULT: "#8CFF8C",      // Primary Green
+            hover: "#72E672",
+            secondary: "#52D96B",    // Secondary Green
+            deep: "#16351F",         // Deep Green
+            glow: "rgba(140, 255, 140, 0.15)",
+            subtle: "rgba(140, 255, 140, 0.08)",
+          },
+          danger: {
+            DEFAULT: "#FF5555",
+            subtle: "rgba(255, 85, 85, 0.12)",
+            border: "rgba(255, 85, 85, 0.3)",
+          },
+          warning: {
+            DEFAULT: "#FFB84D",
+            subtle: "rgba(255, 184, 77, 0.12)",
+            border: "rgba(255, 184, 77, 0.3)",
+          },
         },
       },
       fontFamily: {
         sans: [
+          '"Inter"',
+          '"Geist"',
           '"Plus Jakarta Sans"',
           "-apple-system",
           "BlinkMacSystemFont",
           '"Segoe UI"',
           "Roboto",
-          "system-ui",
           "sans-serif",
         ],
         mono: [
           '"JetBrains Mono"',
-          '"Fira Code"',
+          '"IBM Plex Mono"',
           "ui-monospace",
           "SFMono-Regular",
           "Menlo",
@@ -57,16 +55,11 @@ export default {
         ],
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(0, 0, 0, 0.45)",
-        "glass-elevated": "0 16px 48px -8px rgba(0, 0, 0, 0.7)",
-        "glow-orange": "0 0 24px -2px rgba(249, 115, 22, 0.3)",
-        "glow-violet": "0 0 24px -2px rgba(139, 92, 246, 0.3)",
-        "glow-teal": "0 0 24px -2px rgba(20, 184, 166, 0.25)",
-        "glow-emerald": "0 0 24px -2px rgba(16, 185, 129, 0.25)",
-      },
-      animation: {
-        "pulse-slow": "pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "spin-slow": "spin 12s linear infinite",
+        card: "0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.5)",
+        elevated: "0 8px 24px -4px rgba(0, 0, 0, 0.6)",
+        "green-subtle": "0 0 20px rgba(140, 255, 140, 0.18)",
+        "green-glow": "0 0 35px rgba(140, 255, 140, 0.32)",
+        "green-ring": "0 0 0 1px rgba(140, 255, 140, 0.4)",
       },
     },
   },

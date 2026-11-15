@@ -185,13 +185,13 @@ def extract_code_context(
         # Non-Python files (JS, TS, Go, Java, Dockerfile, etc.): safe window fallback
         enclosing = _fallback_window(source, line0)
 
-    # Redact raw secret from snippet if tool_source is gitleaks or secret detected
+    query_text = enclosing or finding.code_snippet
+    # Redact raw secret from query_text for ChromaDB indexing
     if finding.tool_source == "gitleaks" and finding.code_snippet:
         secret_val = finding.code_snippet.strip()
-        if secret_val and secret_val in enclosing:
-            enclosing = enclosing.replace(secret_val, "[REDACTED_SECRET]")
+        if secret_val and secret_val in query_text:
+            query_text = query_text.replace(secret_val, "[REDACTED_SECRET]")
 
-    query_text = enclosing or finding.code_snippet
     related: List[str] = []
     if store is not None and query_text:
         hits = store.query(

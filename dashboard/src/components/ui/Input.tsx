@@ -14,13 +14,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full space-y-1.5">
         {label && (
-          <label className="block text-xs font-mono font-medium uppercase tracking-wider text-sage-300">
+          <label className="block text-xs font-mono font-medium tracking-wider text-[#A5AAA6] uppercase">
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {icon && (
-            <div className="absolute left-3.5 flex items-center pointer-events-none text-sage-400">
+            <div className="absolute left-3.5 flex items-center pointer-events-none text-[#666C68]">
               {icon}
             </div>
           )}
@@ -28,13 +28,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={clsx(
-              "w-full bg-sage-900 border text-sage-100 placeholder-sage-500 font-sans text-sm rounded-xl transition-all focus:outline-none focus:ring-1 disabled:opacity-40 disabled:cursor-not-allowed",
-              icon ? "pl-10" : "pl-3.5",
-              rightElement ? "pr-12" : "pr-3.5",
-              "py-2.5",
+              "w-full bg-[#101211] border text-[#F4F5F4] placeholder-[#666C68] font-sans text-xs rounded-xl transition-all focus:outline-none focus:ring-1 focus:ring-[#8CFF8C] focus:border-[#8CFF8C] shadow-inner disabled:opacity-40 disabled:cursor-not-allowed",
+              icon ? "pl-9" : "pl-3.5",
+              rightElement ? "pr-11" : "pr-3.5",
+              "py-2",
               error
-                ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/40"
-                : "border-white/[0.09] focus:border-accent-orange/50 focus:ring-accent-orange/50 hover:border-white/[0.18]",
+                ? "border-[#FF5555] focus:border-[#FF5555] focus:ring-[#FF5555]/30"
+                : "border-[#292D2A] hover:border-[#363C38]",
               className
             )}
             {...props}
@@ -46,9 +46,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error ? (
-          <p className="text-[11px] font-mono text-rose-400">{error}</p>
+          <p className="text-[11px] font-mono text-[#FF5555]">{error}</p>
         ) : hint ? (
-          <p className="text-[11px] font-mono text-sage-500">{hint}</p>
+          <p className="text-[11px] font-mono text-[#666C68]">{hint}</p>
         ) : null}
       </div>
     );

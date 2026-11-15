@@ -89,7 +89,7 @@ export const OverviewPage: React.FC = () => {
 
       {/* 2. Repository Search & Configuration Card */}
       <motion.div variants={cardEntrance}>
-        <Card variant="elevated" className="p-5 sm:p-6" glow="orange">
+        <Card variant="elevated" className="p-5 sm:p-6" glow="amber">
           <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-3.5">
             <div className="flex-1">
               <Input
@@ -305,7 +305,7 @@ export const OverviewPage: React.FC = () => {
           </Card>
 
           {/* Verification Box */}
-          <Card className="p-5 space-y-3" glow="teal">
+          <Card className="p-5 space-y-3" glow="none">
             <div className="flex items-center gap-2 text-accent-teal text-xs font-semibold">
               <ShieldCheck className="w-4 h-4" />
               <span>Sandbox Verification Guarantee</span>

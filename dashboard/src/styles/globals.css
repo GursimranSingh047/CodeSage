@@ -8,79 +8,115 @@
   }
 
   body {
-    background-color: #090a0d;
-    color: #eef2fa;
-    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #080909;
+    color: #F4F5F4;
+    font-family: "Inter", "Geist", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
+    letter-spacing: -0.012em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Subtle architectural dot grid */
-.bg-grid-subtle {
-  background-size: 28px 28px;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+/* Technical Dark Surfaces */
+.surface-base {
+  background-color: #080909;
 }
 
-/* Glass panel surfaces */
-.glass-panel {
-  background: rgba(14, 17, 23, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.surface-secondary {
+  background-color: #101211;
+  border: 1px solid #292D2A;
 }
 
-.glass-panel-elevated {
-  background: rgba(19, 23, 32, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.75);
+.surface-card {
+  background-color: #101211;
+  border: 1px solid #292D2A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.glass-panel-subtle {
-  background: rgba(26, 31, 44, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.surface-elevated {
+  background-color: #151716;
+  border: 1px solid #292D2A;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
 }
 
-/* Active navigation item gradient */
-.nav-active-glow {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.14) 0%, rgba(139, 92, 246, 0.06) 100%);
-  border-left: 2px solid #f97316;
+.surface-recessed {
+  background-color: #080909;
+  border: 1px solid #292D2A;
 }
 
-/* Custom sleek dark scrollbar */
+.surface-interactive {
+  background-color: #101211;
+  border: 1px solid #292D2A;
+  transition: all 0.15s ease-in-out;
+}
+.surface-interactive:hover {
+  background-color: #151716;
+  border-color: #363C38;
+}
+
+/* Technical Grid & Textures */
+.technical-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(41, 45, 42, 0.55) 1px, transparent 1px);
+}
+
+.technical-line-grid {
+  background-size: 48px 48px;
+  background-image: 
+    linear-gradient(to right, rgba(41, 45, 42, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(41, 45, 42, 0.35) 1px, transparent 1px);
+}
+
+/* Green Accents & Glows */
+.glow-green {
+  box-shadow: 0 0 25px rgba(140, 255, 140, 0.22);
+}
+
+.glow-green-sm {
+  box-shadow: 0 0 12px rgba(140, 255, 140, 0.16);
+}
+
+.glow-green-border {
+  border-color: rgba(140, 255, 140, 0.45);
+  box-shadow: 0 0 16px rgba(140, 255, 140, 0.14);
+}
+
+/* Precision Code Line Highlighting */
+.diff-line-removed {
+  background-color: rgba(255, 85, 85, 0.12);
+  border-left: 2px solid #FF5555;
+  color: #FFA3A3;
+}
+
+.diff-line-added {
+  background-color: rgba(140, 255, 140, 0.12);
+  border-left: 2px solid #8CFF8C;
+  color: #C2FFC2;
+}
+
+/* Minimalist Dark Technical Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(9, 10, 13, 0.6);
+  background: #080909;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #222838;
+  background: #292D2A;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3e4964;
+  background: #52D96B;
 }
 
-/* Tooltip arrow */
-.tooltip-arrow {
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid #1a1f2c;
-}
-
-/* Accessibility: focus visible outline */
+/* Accessibility: focus visible outline in green */
 :focus-visible {
-  outline: 2px solid #f97316;
+  outline: 2px solid #8CFF8C;
   outline-offset: 2px;
 }
 

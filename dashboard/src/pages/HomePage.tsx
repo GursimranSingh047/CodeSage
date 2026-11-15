@@ -72,7 +72,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* Main Scan Configuration Panel */}
       <motion.div variants={cardEntrance} className="max-w-2xl mx-auto">
-        <Card variant="elevated" className="p-6 sm:p-8 relative overflow-hidden" glow="orange">
+        <Card variant="elevated" className="p-6 sm:p-8 relative overflow-hidden" glow="amber">
           <div className="absolute top-0 right-0 w-64 h-64 bg-accent-orange/5 rounded-full blur-3xl pointer-events-none" />
           
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
@@ -171,7 +171,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* Architectural Guarantees Grid */}
       <motion.div variants={cardEntrance} className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto pt-4">
-        <Card className="p-5 space-y-3" glow="violet">
+        <Card className="p-5 space-y-3" glow="none">
           <div className="w-9 h-9 rounded-lg bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center text-accent-violet">
             <Cpu className="w-5 h-5" />
           </div>
@@ -184,7 +184,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </p>
         </Card>
 
-        <Card className="p-5 space-y-3" glow="teal">
+        <Card className="p-5 space-y-3" glow="none">
           <div className="w-9 h-9 rounded-lg bg-accent-teal/10 border border-accent-teal/20 flex items-center justify-center text-accent-teal">
             <ShieldCheck className="w-5 h-5" />
           </div>
@@ -197,7 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </p>
         </Card>
 
-        <Card className="p-5 space-y-3" glow="orange">
+        <Card className="p-5 space-y-3" glow="amber">
           <div className="w-9 h-9 rounded-lg bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center text-accent-orange">
             <Layers className="w-5 h-5" />
           </div>

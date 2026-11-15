@@ -27,7 +27,7 @@ export const CancelScanModal: React.FC<CancelScanModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 bg-[#080909]/80 backdrop-blur-sm"
         />
 
         {/* Modal Dialog Card */}
@@ -36,36 +36,36 @@ export const CancelScanModal: React.FC<CancelScanModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-md glass-panel-elevated rounded-2xl p-6 sm:p-7 border border-rose-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-10 space-y-5"
+          className="relative w-full max-w-md surface-card rounded-2xl p-6 sm:p-7 border border-[#292D2A] shadow-elevated z-10 space-y-5"
         >
           {/* Close corner icon */}
           <button
             type="button"
             onClick={onClose}
             disabled={isCancelling}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-sage-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-[#666C68] hover:text-[#F4F5F4] hover:bg-[#151716] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
           {/* Alert Header Icon & Title */}
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+            <div className="w-12 h-12 rounded-xl bg-[#FF5555]/10 border border-[#FF5555]/20 flex items-center justify-center text-[#FF5555] shrink-0">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-lg font-sans font-bold text-white tracking-tight">
+              <h3 className="text-lg font-sans font-bold text-[#F4F5F4] tracking-tight">
                 Cancel this scan?
               </h3>
-              <p className="text-xs text-sage-400 font-sans leading-relaxed">
+              <p className="text-xs text-[#A5AAA6] font-sans leading-relaxed">
                 CodeSage will stop processing new findings. Temporary resources will be cleaned safely.
               </p>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-sage-900/80 border border-white/[0.06] text-xs font-mono text-sage-300 leading-relaxed">
-            <div className="text-[11px] text-accent-orange font-semibold uppercase mb-1">
+          <div className="p-3.5 rounded-xl bg-[#151716] border border-[#292D2A] text-xs font-mono text-[#F4F5F4] leading-relaxed">
+            <div className="text-[11px] text-[#8CFF8C] font-semibold uppercase mb-1">
               Guaranteed Behavior
             </div>
             Completed findings, artifacts, and verification traces generated up to this moment are preserved in persistent history.
@@ -89,7 +89,7 @@ export const CancelScanModal: React.FC<CancelScanModalProps> = ({
               onClick={onConfirm}
               loading={isCancelling}
               icon={<StopCircle className="w-4 h-4" />}
-              className="text-xs font-sans font-semibold shadow-[0_0_12px_rgba(244,63,94,0.3)]"
+              className="text-xs font-sans font-semibold"
             >
               Cancel Scan
             </Button>

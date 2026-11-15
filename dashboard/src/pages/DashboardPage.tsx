@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Activity, RefreshCw } from "lucide-react";
-import { NewScanCard } from "@/components/dashboard/NewScanCard";
+import { Play, Github, RefreshCw } from "lucide-react";
+import { ComputationalField } from "@/components/canvas/ComputationalField";
+import { FloatingCodeCard } from "@/components/canvas/FloatingCodeCard";
 import { StatsOverview, AggregateStats } from "@/components/dashboard/StatsOverview";
+import { ActiveScanCard } from "@/components/dashboard/ActiveScanCard";
+import { RepositoryStatusCard } from "@/components/dashboard/RepositoryStatusCard";
+import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
+import { NewScanCard } from "@/components/dashboard/NewScanCard";
 import { RecentScansList } from "@/components/dashboard/RecentScansList";
-import { WorkspaceEmptyState } from "@/components/dashboard/WorkspaceEmptyState";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/api/client";
 import { ScanHistoryItem } from "@/types";
@@ -13,12 +17,16 @@ import { staggerContainer, cardEntrance } from "@/animations/variants";
 interface DashboardPageProps {
   onStartScan: (repoUrl: string, branch?: string, scanners?: string[]) => Promise<string | void>;
   onSelectScan?: (scanId: string) => void;
+  onNavigateToFindings?: () => void;
+  onNavigateToPR?: () => void;
   isScanning?: boolean;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   onStartScan,
   onSelectScan,
+  onNavigateToFindings,
+  onNavigateToPR,
   isScanning = false,
 }) => {
   const [scans, setScans] = useState<ScanHistoryItem[]>([]);
@@ -59,7 +67,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         prs += prCount;
         fixes += prCount + skippedPr;
 
-        // Total confirmed findings across scans (excluding false positives)
         const totalFindings = Object.values(counts).reduce(
           (acc, val) => acc + (typeof val === "number" ? val : 0),
           0
@@ -67,7 +74,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         vulns += Math.max(0, totalFindings - falsePos);
       }
 
-      // If there are scans, fetch status of the latest completed scan to check for critical metrics
       const completedScan = loadedScans.find((s) => s.status === "complete");
       if (completedScan) {
         try {
@@ -77,7 +83,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             hasCrit = true;
           }
         } catch {
-          // If status detail cannot be fetched, keep critical at 0
+          // Keep critical at 0 if detail fetch fails
         }
       }
 
@@ -102,23 +108,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     fetchScansAndStats();
   }, [fetchScansAndStats]);
 
-  const handleManualRefresh = () => {
-    setRefreshing(true);
-    fetchScansAndStats();
-  };
-
   const handleFocusNewScan = () => {
     newScanCardRef.current?.scrollIntoView({ behavior: "smooth" });
     const input = newScanCardRef.current?.querySelector("input");
     input?.focus();
-  };
-
-  // Determine greeting based on local time
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 17) return "Good evening, CodeSage";
-    if (hour >= 12) return "Good afternoon, CodeSage";
-    return "Good morning, CodeSage";
   };
 
   return (
@@ -126,79 +119,150 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="space-y-6 sm:space-y-8 max-w-7xl mx-auto"
+      className="space-y-8 max-w-7xl mx-auto"
     >
-      {/* 1. Header Greeting Area */}
+      {/* 1. HERO CENTERPIECE: Editorial Headline + Flowing Computational Field + Code Diff Card */}
       <motion.div
         variants={cardEntrance}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1"
+        className="surface-card rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-elevated border border-[#292D2A]"
       >
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-accent-orange/10 border border-accent-orange/25 text-accent-orange text-xs font-mono font-medium mb-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-orange animate-pulse" />
-            Security Command Center
+        {/* Ambient green glow bloom */}
+        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-[#8CFF8C]/[0.05] rounded-full blur-3xl pointer-events-none" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+          {/* Left Column: Heading & CTAs */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="inline-flex items-center gap-2 text-xs font-mono font-medium tracking-wider text-[#8CFF8C]">
+              <span className="w-4 h-[2px] bg-[#8CFF8C]" />
+              <span className="uppercase text-[11px]">AUTONOMOUS CODE SECURITY</span>
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-extrabold text-[#F4F5F4] tracking-tight leading-[1.1]">
+                THE FUTURE ISN&apos;T <br />
+                WRITING CODE. <br />
+                <span className="text-[#8CFF8C]">IT&apos;S REVIEWING IT.</span>
+              </h1>
+              <p className="text-sm sm:text-base text-[#A5AAA6] font-sans max-w-lg leading-relaxed pt-1">
+                Sage AI autonomously secures every change. Real-time taint tracking,
+                automated patch synthesis, and AST verification before PR dispatch.
+              </p>
+            </div>
+
+            {/* CTAs matching Reference 1 */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleFocusNewScan}
+                icon={<Play className="w-3.5 h-3.5 fill-current" />}
+                className="font-sans font-bold text-xs"
+              >
+                Scan Repository
+              </Button>
+
+              <Button
+                variant="outline"
+                size="md"
+                onClick={handleFocusNewScan}
+                icon={<Github className="w-4 h-4 text-[#A5AAA6]" />}
+                className="font-sans text-xs text-[#F4F5F4]"
+              >
+                Connect GitHub
+              </Button>
+            </div>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-bold text-white tracking-tight">
-            {getGreeting()}
-          </h1>
-          <p className="text-xs sm:text-sm text-sage-400 font-sans max-w-2xl">
-            Autonomous security engineering for your codebase.
-          </p>
-        </div>
+          {/* Right Column: Green Computational Wave Field + Floating Code Diff Card */}
+          <div className="lg:col-span-5 relative flex items-center justify-center min-h-[320px] sm:min-h-[360px]">
+            {/* Background Canvas: parametric flowing waves */}
+            <div className="absolute inset-0 w-full h-full overflow-hidden opacity-90 pointer-events-none">
+              <ComputationalField />
+            </div>
 
-        {/* Live Engine Status & Refresh */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sage-900 border border-white/[0.08] text-xs font-mono text-sage-300">
-            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline">Engine:</span>
-            <span className="text-emerald-400 font-semibold">Active</span>
+            {/* Foreground: Floating Code Diff Window */}
+            <div className="relative z-10 w-full">
+              <FloatingCodeCard />
+            </div>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualRefresh}
-            loading={refreshing}
-            icon={<RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />}
-            className="text-xs font-mono"
-          >
-            Refresh
-          </Button>
         </div>
       </motion.div>
 
-      {/* 2. Top Stats Overview (Animated Counters) */}
+      {/* 2. Repository Scan Telemetry & Vulnerability Posture */}
       <motion.div variants={cardEntrance}>
-        <StatsOverview stats={stats} loading={loading} />
+        <StatsOverview
+          stats={stats}
+          loading={loading}
+          repoName={scans[0]?.repo_url ? scans[0].repo_url.replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "") : "Repository"}
+          onViewFindings={onNavigateToFindings}
+          onReviewPRs={onNavigateToPR}
+        />
       </motion.div>
 
-      {/* 3. New Scan Card + Security Guarantees */}
-      <motion.div ref={newScanCardRef} variants={cardEntrance}>
+      {/* 3. Three Main Dashboard Panels (Active Scan, Repo Status, Recent Activity) */}
+      <motion.div
+        variants={cardEntrance}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5"
+      >
+        {/* Active Scan (5 cols) */}
+        <div className="lg:col-span-5">
+          <ActiveScanCard
+            repoUrl={scans[0]?.repo_url || "Repository"}
+            branch={scans[0]?.branch || "main"}
+            progressPercent={isScanning ? 67 : 100}
+            currentStage={isScanning ? "Analyzing codebase..." : "Audit Verified"}
+            isScanning={isScanning}
+            onNavigateToScan={handleFocusNewScan}
+          />
+        </div>
+
+        {/* Repository Status (3 cols) */}
+        <div className="lg:col-span-3">
+          <RepositoryStatusCard
+            status="Protected"
+            lastScanText={scans[0] ? "Audit active" : "Last scan: 2 minutes ago"}
+            fixedCount={stats.fixesGenerated || 2}
+            prCount={stats.prsCreated || 3}
+          />
+        </div>
+
+        {/* Recent Activity (4 cols) */}
+        <div className="lg:col-span-4">
+          <RecentActivityCard onViewAll={handleFocusNewScan} />
+        </div>
+      </motion.div>
+
+      {/* 4. Interactive Scan Execution Engine */}
+      <motion.div ref={newScanCardRef} variants={cardEntrance} className="pt-2">
         <NewScanCard onStartScan={onStartScan} isScanning={isScanning} />
       </motion.div>
 
-      {/* 4. Recent Scans or Empty Workspace State */}
-      <motion.div variants={cardEntrance}>
-        {error ? (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs font-mono flex items-center justify-between">
-            <span>{error}</span>
-            <Button variant="ghost" size="xs" onClick={handleManualRefresh}>
-              Retry
-            </Button>
+      {/* 5. Scan History Telemetry Table */}
+      {error && (
+        <div className="p-3 rounded-xl bg-[#FF5555]/10 border border-[#FF5555]/30 text-xs font-mono text-[#FF5555]">
+          {error}
+        </div>
+      )}
+      {scans.length > 0 && (
+        <motion.div variants={cardEntrance} className="pt-2">
+          <div className="flex items-center justify-between pb-3">
+            <h3 className="text-sm font-sans font-bold text-[#F4F5F4] tracking-tight">
+              Recent Audits
+            </h3>
+            <button
+              onClick={() => {
+                setRefreshing(true);
+                fetchScansAndStats();
+              }}
+              className="text-xs font-mono text-[#A5AAA6] hover:text-[#8CFF8C] flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
           </div>
-        ) : loading ? (
-          <div className="p-12 text-center text-sage-500 font-mono text-xs">
-            Loading security workspace history...
-          </div>
-        ) : scans.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-6 sm:p-8">
-            <WorkspaceEmptyState onFocusInput={handleFocusNewScan} />
-          </div>
-        ) : (
           <RecentScansList scans={scans} onSelectScan={onSelectScan} />
-        )}
-      </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

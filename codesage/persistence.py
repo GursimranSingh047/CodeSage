@@ -21,8 +21,13 @@ class ScanStorage:
     """Atomic, file-based persistence for scan runs."""
 
     def __init__(self, storage_dir: Optional[Path] = None):
-        self.storage_dir = Path(storage_dir or DEFAULT_STORAGE_DIR)
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self._custom_dir = Path(storage_dir) if storage_dir else None
+
+    @property
+    def storage_dir(self) -> Path:
+        target = self._custom_dir or Path(os.environ.get("CODESAGE_STORAGE_DIR", DEFAULT_STORAGE_DIR))
+        target.mkdir(parents=True, exist_ok=True)
+        return target
 
     def save_run(self, run_data: dict) -> Path:
         """Atomically persist a scan record to disk."""

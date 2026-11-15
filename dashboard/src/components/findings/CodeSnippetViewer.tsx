@@ -10,32 +10,26 @@ interface CodeSnippetViewerProps {
   className?: string;
 }
 
-// Simple deterministic syntax highlighter for Python / generic code
-function highlightSyntax(line: string): React.ReactNode {
-  // Comments
-  const commentIdx = line.indexOf("#");
-  if (commentIdx !== -1) {
-    const codePart = line.substring(0, commentIdx);
-    const commentPart = line.substring(commentIdx);
-    return (
-      <>
-        {highlightTokens(codePart)}
-        <span className="text-sage-500 italic">{commentPart}</span>
-      </>
-    );
-  }
-  return highlightTokens(line);
-}
-
-function highlightTokens(text: string): React.ReactNode {
-  // Regex to match strings and keywords
-  const parts = text.split(/(".*?"|'.*?'|\b(?:def|class|return|import|from|as|if|elif|else|for|while|try|except|finally|with|raise|assert|in|is|not|and|or|None|True|False)\b)/g);
+function highlightSyntax(lineText: string): React.ReactNode {
+  const parts = lineText.split(
+    /(\b(?:def|class|return|import|from|as|if|elif|else|for|while|try|except|finally|with|raise|assert|in|is|not|and|or|None|True|False)\b|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|#[^\n]*)/g
+  );
 
   return parts.map((part, i) => {
     if (!part) return null;
-    if (part.startsWith('"') || part.startsWith("'")) {
+    if (part.startsWith("#")) {
       return (
-        <span key={i} className="text-emerald-400">
+        <span key={i} className="text-[#666C68] italic">
+          {part}
+        </span>
+      );
+    }
+    if (
+      (part.startsWith('"') && part.endsWith('"')) ||
+      (part.startsWith("'") && part.endsWith("'"))
+    ) {
+      return (
+        <span key={i} className="text-[#8CFF8C]">
           {part}
         </span>
       );
@@ -46,19 +40,19 @@ function highlightTokens(text: string): React.ReactNode {
       )
     ) {
       return (
-        <span key={i} className="text-accent-orange font-semibold">
+        <span key={i} className="text-[#52D96B] font-semibold">
           {part}
         </span>
       );
     }
     if (/^\b(?:None|True|False)\b$/.test(part)) {
       return (
-        <span key={i} className="text-accent-teal font-medium">
+        <span key={i} className="text-[#8CFF8C] font-medium">
           {part}
         </span>
       );
     }
-    return <span key={i}>{part}</span>;
+    return <span key={i} className="text-[#F4F5F4]">{part}</span>;
   });
 }
 
@@ -73,9 +67,6 @@ export const CodeSnippetViewer: React.FC<CodeSnippetViewerProps> = ({
 
   const lines = code ? code.split("\n") : [];
 
-  // Determine starting line number:
-  // If startLine is provided, use it. Otherwise, if code has 1 line, start at targetLine.
-  // If code is multi-line enclosing function and targetLine is inside, approximate start.
   const baseStart =
     typeof startLine === "number" && startLine > 0
       ? startLine
@@ -94,18 +85,18 @@ export const CodeSnippetViewer: React.FC<CodeSnippetViewerProps> = ({
   return (
     <div
       className={clsx(
-        "rounded-xl border border-white/[0.08] bg-sage-950 overflow-hidden font-mono text-xs shadow-inner",
+        "rounded-2xl border border-[#292D2A] bg-[#080909] overflow-hidden font-mono text-xs shadow-md",
         className
       )}
     >
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-3.5 py-2.5 bg-sage-900/90 border-b border-white/[0.06] select-none">
-        <div className="flex items-center gap-2 text-sage-300 truncate">
-          <FileCode className="w-3.5 h-3.5 text-accent-teal shrink-0" />
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[#151716] border-b border-[#292D2A] select-none">
+        <div className="flex items-center gap-2 text-[#F4F5F4] truncate">
+          <FileCode className="w-3.5 h-3.5 text-[#8CFF8C] shrink-0" />
           <span className="truncate text-[11px] font-mono">
             {filePath || "Source Context"}
           </span>
-          <span className="text-sage-500 text-[10px] hidden sm:inline">
+          <span className="text-[#666C68] text-[10px] hidden sm:inline">
             (Target: Line {targetLine})
           </span>
         </div>
@@ -113,62 +104,73 @@ export const CodeSnippetViewer: React.FC<CodeSnippetViewerProps> = ({
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-sage-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-[#A5AAA6] hover:text-[#F4F5F4] hover:bg-white/[0.04] transition-colors cursor-pointer"
           title="Copy code to clipboard"
         >
           {copied ? (
             <>
-              <Check className="w-3 h-3 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
+              <Check className="w-3 h-3 text-[#8CFF8C]" />
+              <span className="text-[#8CFF8C]">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="w-3 h-3 text-sage-400" />
+              <Copy className="w-3 h-3" />
               <span>Copy</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Code Display Area */}
-      <div className="overflow-x-auto py-2.5 text-xs font-mono leading-relaxed max-h-96">
-        <table className="w-full border-collapse">
+      {/* Code Display Table */}
+      <div className="overflow-x-auto p-2">
+        <table className="w-full border-collapse font-mono text-xs">
           <tbody>
-            {lines.map((lineText, idx) => {
-              const currentLineNumber = baseStart + idx;
-              const isTarget = currentLineNumber === targetLine;
+            {lines.length === 0 ? (
+              <tr>
+                <td className="p-4 text-center text-[#666C68]">
+                  No source context available.
+                </td>
+              </tr>
+            ) : (
+              lines.map((lineText, idx) => {
+                const currentLineNum = baseStart + idx;
+                const isTarget = currentLineNum === targetLine;
 
-              return (
-                <tr
-                  key={idx}
-                  className={clsx(
-                    "transition-colors",
-                    isTarget
-                      ? "bg-rose-500/15 border-l-2 border-accent-orange text-white"
-                      : "hover:bg-white/[0.02] text-sage-300"
-                  )}
-                >
-                  {/* Line Number Column */}
-                  <td className="w-12 select-none pr-3 text-right text-[11px] text-sage-500 font-mono align-top py-0.5 border-r border-white/[0.06]">
-                    {currentLineNumber}
-                  </td>
-
-                  {/* Marker Indicator */}
-                  <td className="w-6 select-none text-center align-top py-0.5">
-                    {isTarget && (
-                      <span className="text-accent-orange text-[10px] font-bold">
-                        ▶
-                      </span>
+                return (
+                  <tr
+                    key={idx}
+                    className={clsx(
+                      "transition-colors",
+                      isTarget
+                        ? "bg-[#FF5555]/10 border-l-2 border-[#FF5555] text-[#FFA3A3]"
+                        : "hover:bg-white/[0.02]"
                     )}
-                  </td>
+                  >
+                    {/* Line number gutter */}
+                    <td
+                      className={clsx(
+                        "w-12 select-none px-3 py-0.5 text-right font-mono text-[11px] shrink-0",
+                        isTarget
+                          ? "text-[#FF5555] font-bold"
+                          : "text-[#666C68]"
+                      )}
+                    >
+                      {currentLineNum}
+                    </td>
 
-                  {/* Code Line Content */}
-                  <td className="pl-2 pr-4 py-0.5 whitespace-pre font-mono">
-                    {highlightSyntax(lineText)}
-                  </td>
-                </tr>
-              );
-            })}
+                    {/* Code line content */}
+                    <td className="px-4 py-0.5 whitespace-pre font-mono leading-relaxed">
+                      {isTarget && (
+                        <span className="text-[#FF5555] text-[10px] font-bold mr-2 uppercase tracking-wide">
+                          [VULNERABLE]
+                        </span>
+                      )}
+                      {highlightSyntax(lineText)}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

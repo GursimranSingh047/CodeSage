@@ -54,6 +54,14 @@ def fixture_repo(tmp_path_factory):
     return repo
 
 
+@pytest.fixture(autouse=True)
+def isolate_test_storage(tmp_path, monkeypatch):
+    test_storage = tmp_path / "test_scans"
+    test_storage.mkdir()
+    monkeypatch.setenv("CODESAGE_STORAGE_DIR", str(test_storage))
+    yield
+
+
 def _factory_for(repo: Path):
     finding = scan_repo(repo, scanners=("semgrep",))[0]
     context = extract_code_context(finding, repo)
@@ -219,3 +227,96 @@ def test_websocket_replays_history_and_streams_live(client):
     assert types[0] == "run_started"          # replay includes pre-connect history
     assert types[-1] == "run_complete"
     assert "finding_done" in types
+
+
+def test_create_pr_endpoint_and_path_parameter(client, monkeypatch):
+    test_client, fixture_repo = client
+    scan_id = _start_scan(test_client, fixture_repo)
+    _wait_complete(test_client, scan_id)
+
+    findings = test_client.get(f"/scan/{scan_id}/findings").json()
+    assert len(findings["completed"]) >= 1
+    finding_id = findings["completed"][0]["finding_id"]
+
+    # 1. Verify finding_id with slashes works in artifacts route
+    encoded_fid = finding_id.replace(":", "/")
+    # Test path parameter routing with slashes
+    art_res = test_client.get(f"/scan/{scan_id}/findings/{finding_id}/artifacts")
+    assert art_res.status_code == 200
+
+    # 2. 404 for unknown finding ID
+    res_404 = test_client.post(f"/scan/{scan_id}/findings/unknown/path/id/create-pr")
+    assert res_404.status_code == 404
+
+    # 3. 400 when repository is not configured or token missing
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    res_no_token = test_client.post(f"/scan/{scan_id}/findings/{finding_id}/create-pr")
+    assert res_no_token.status_code == 400
+    assert "GitHub" in res_no_token.json()["detail"]
+
+    # 4. Mock GitHub and PR agent to verify successful PR creation
+    monkeypatch.setenv("GITHUB_TOKEN", "fake_token_for_test")
+    fake_pr_info = {
+        "pr_url": "https://github.com/fake-org/fake-repo/pull/42",
+        "pr_number": 42,
+        "branch": "codesage/fix-app-py-1234",
+        "base_branch": "main",
+        "title": "Fix vulnerability in app.py (CodeSage)",
+    }
+
+    import codesage.pr_agent as pr_agent_mod
+
+    class FakeOwner:
+        login = "fake-org"
+
+    class FakeRepo:
+        owner = FakeOwner()
+        default_branch = "main"
+
+        def get_pulls(self, state="open", head=None):
+            return []
+
+        def get_git_ref(self, ref):
+            raise Exception("not found")
+
+    monkeypatch.setattr(pr_agent_mod, "get_repo", lambda token, repo_name: FakeRepo())
+    monkeypatch.setattr(pr_agent_mod, "create_pull_request", lambda repo, patch, triage, verif, base_branch: fake_pr_info)
+
+    # 5. Start a scan with github_repo configured and test successful PR creation + duplicate protection
+    scan_resp = test_client.post(
+        "/scan",
+        json={"repository_url": str(fixture_repo), "github_repo": "test-owner/test-repo"},
+    ).json()
+    gh_scan_id = scan_resp["scan_id"]
+    _wait_complete(test_client, gh_scan_id)
+
+    findings2 = test_client.get(f"/scan/{gh_scan_id}/findings").json()
+    assert len(findings2["completed"]) >= 1
+    fid2 = findings2["completed"][0]["finding_id"]
+
+    # Call create-pr
+    res_pr_ok = test_client.post(f"/scan/{gh_scan_id}/findings/{fid2}/create-pr")
+    assert res_pr_ok.status_code == 200, res_pr_ok.text
+    pr_json = res_pr_ok.json()
+    assert pr_json["success"] is True
+    assert pr_json["pr_number"] == 42
+    assert pr_json["pr_url"] == "https://github.com/fake-org/fake-repo/pull/42"
+    assert pr_json["status"] == "pr_created"
+
+    # 6. Test finding ID resolution contracts:
+    # 6a. F-1023 does not exist in scan, returns 404
+    res_fake = test_client.post(f"/scan/{gh_scan_id}/findings/F-1023/create-pr")
+    assert res_fake.status_code == 404
+    assert "F-1023" in res_fake.json()["detail"]
+
+    # 6b. Display ID (e.g. F-001 or F-1) resolves to the exact finding and duplicate protection works
+    res_display_id = test_client.post(f"/scan/{gh_scan_id}/findings/F-001/create-pr")
+    assert res_display_id.status_code == 200
+    assert res_display_id.json()["pr_number"] == 42
+    assert res_display_id.json()["finding_id"] == fid2
+
+    # 6c. Artifacts resolution works for both canonical ID and display ID
+    art_display = test_client.get(f"/scan/{gh_scan_id}/findings/F-001/artifacts")
+    assert art_display.status_code == 200
+
+

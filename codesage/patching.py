@@ -108,6 +108,8 @@ def generate_patch(
         try:
             text = llm.complete(system, prompt_user)
             patch = parse_patch_response(text, finding.id, attempt_number)
+            if patch.patched_code.strip() == context.enclosing_function.strip():
+                raise ValueError("Generated patch is identical to original enclosing function")
             return patch.model_copy(update={"original_code": context.enclosing_function})
         except (ValueError, LLMError) as exc:
             last_error = str(exc)

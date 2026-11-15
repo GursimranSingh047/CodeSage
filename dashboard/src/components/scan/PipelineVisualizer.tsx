@@ -13,7 +13,6 @@ import {
   GitPullRequest,
   Loader2,
 } from "lucide-react";
-import { Card } from "@/components/ui/Card";
 import { PIPELINE_STAGES, PipelineStageId, StageStatus } from "@/types/pipeline";
 import { clsx } from "clsx";
 
@@ -38,29 +37,32 @@ export const PipelineVisualizer: React.FC<PipelineVisualizerProps> = ({
   className,
 }) => {
   return (
-    <Card variant="elevated" className={clsx("p-5 sm:p-6", className)}>
-      <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] mb-6">
+    <div className={clsx("surface-card rounded-2xl p-6 sm:p-7 border border-[#292D2A]", className)}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#292D2A] mb-5 gap-3">
         <div>
-          <h3 className="text-sm font-sans font-semibold text-white tracking-tight flex items-center gap-2">
-            <span>Autonomous Pipeline Orchestration</span>
+          <h3 className="text-sm font-sans font-bold text-[#F4F5F4] tracking-tight">
+            Autonomous Pipeline Orchestration
           </h3>
-          <p className="text-xs text-sage-400 font-sans mt-0.5">
+          <p className="text-xs text-[#A5AAA6] font-sans mt-0.5">
             Real-time execution across 7 specialized engineering stages.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-mono text-sage-400">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" /> Completed
+        <div className="flex items-center gap-3 text-[11px] font-mono text-[#666C68]">
+          <span className="flex items-center gap-1.5 text-[#F4F5F4]">
+            <span className="w-2 h-2 rounded-full bg-[#8CFF8C]" /> Done
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-accent-orange animate-ping" /> Running
+          <span className="flex items-center gap-1.5 text-[#8CFF8C]">
+            <span className="w-2 h-2 rounded-full bg-[#8CFF8C] animate-ping" /> Running
+          </span>
+          <span className="flex items-center gap-1.5 text-[#666C68]">
+            <span className="w-2 h-2 rounded-full bg-[#292D2A]" /> Queued
           </span>
         </div>
       </div>
 
-      {/* Horizontal / Wrapped Grid of Stages */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-2.5 relative">
+      {/* 7-Stage Pipeline Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 relative">
         {PIPELINE_STAGES.map((stage, idx) => {
           const status: StageStatus = stageStatuses[stage.id] || "pending";
           const isPending = status === "pending";
@@ -71,87 +73,79 @@ export const PipelineVisualizer: React.FC<PipelineVisualizerProps> = ({
 
           return (
             <div key={stage.id} className="relative flex flex-col justify-between">
-              {/* Main Stage Node Card */}
               <motion.div
                 initial={false}
                 animate={{
                   scale: isRunning ? [1, 1.02, 1] : 1,
                 }}
                 transition={{
-                  duration: 2.5,
+                  duration: 2.2,
                   repeat: isRunning ? Infinity : 0,
                   ease: "easeInOut",
                 }}
                 className={clsx(
                   "p-3.5 rounded-xl border flex flex-col justify-between h-full transition-all duration-300 relative select-none",
                   isRunning &&
-                    "bg-accent-orange/10 border-accent-orange/50 shadow-[0_0_16px_rgba(249,115,22,0.25)] ring-1 ring-accent-orange/40",
+                    "bg-[#16351F]/40 border-[#8CFF8C] shadow-[0_0_16px_rgba(140,255,140,0.2)] ring-1 ring-[#8CFF8C]/30",
                   isCompleted &&
-                    "bg-emerald-500/10 border-emerald-500/30 text-white shadow-[0_0_12px_rgba(16,185,129,0.1)]",
+                    "bg-[#151716] border-[#292D2A] text-[#F4F5F4]",
                   isFailed &&
-                    "bg-rose-500/10 border-rose-500/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
+                    "bg-[#FF5555]/10 border-[#FF5555]/30 text-[#FF5555]",
                   isCancelled &&
-                    "bg-amber-500/10 border-amber-500/30 text-amber-300",
+                    "bg-[#101211] border-[#292D2A] text-[#666C68]",
                   isPending &&
-                    "bg-sage-900/60 border-white/[0.06] text-sage-500"
+                    "bg-[#101211] border-[#292D2A]/60 text-[#666C68]"
                 )}
               >
-                {/* Active Glowing Ring Particle for Running Stage */}
+                {/* Active Green Pulse Pip for Running Stage */}
                 {isRunning && (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-t-2 border-r-2 border-accent-orange"
-                  />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#8CFF8C] animate-ping" />
                 )}
 
                 {/* Top Row: Stage Index & Status Icon */}
-                <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center justify-between mb-2">
                   <span
                     className={clsx(
                       "text-[10px] font-mono font-bold uppercase tracking-wider",
                       isRunning
-                        ? "text-accent-orange"
+                        ? "text-[#8CFF8C]"
                         : isCompleted
-                        ? "text-emerald-400"
-                        : "text-sage-500"
+                        ? "text-[#F4F5F4]"
+                        : "text-[#666C68]"
                     )}
                   >
                     0{idx + 1}
                   </span>
 
-                  {/* Stage Icon according to state */}
                   <div className="shrink-0">
                     {isCompleted && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <CheckCircle2 className="w-4 h-4 text-[#8CFF8C]" />
                     )}
                     {isRunning && (
-                      <Loader2 className="w-4 h-4 text-accent-orange animate-spin" />
+                      <Loader2 className="w-4 h-4 text-[#8CFF8C] animate-spin" />
                     )}
-                    {isFailed && <XCircle className="w-4 h-4 text-rose-400" />}
+                    {isFailed && <XCircle className="w-4 h-4 text-[#FF5555]" />}
                     {isCancelled && (
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <AlertTriangle className="w-4 h-4 text-[#666C68]" />
                     )}
                     {isPending && (
-                      <div className="text-sage-600">{STAGE_ICONS[stage.id]}</div>
+                      <div className="text-[#666C68]">{STAGE_ICONS[stage.id]}</div>
                     )}
                   </div>
                 </div>
 
                 {/* Stage Title & Short Label */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div
                     className={clsx(
                       "font-sans font-bold text-xs uppercase tracking-wider truncate",
                       isRunning
-                        ? "text-white"
+                        ? "text-[#8CFF8C]"
                         : isCompleted
-                        ? "text-white"
+                        ? "text-[#F4F5F4]"
                         : isFailed
-                        ? "text-rose-300"
-                        : isCancelled
-                        ? "text-amber-300"
-                        : "text-sage-400"
+                        ? "text-[#FF5555]"
+                        : "text-[#666C68]"
                     )}
                   >
                     {stage.shortLabel}
@@ -159,20 +153,20 @@ export const PipelineVisualizer: React.FC<PipelineVisualizerProps> = ({
 
                   <p
                     className={clsx(
-                      "text-[10px] font-mono leading-tight line-clamp-2",
+                      "text-[10px] font-mono leading-tight line-clamp-1",
                       isRunning
-                        ? "text-accent-orange"
+                        ? "text-[#8CFF8C] font-semibold"
                         : isCompleted
-                        ? "text-emerald-400/90"
-                        : "text-sage-500"
+                        ? "text-[#52D96B]"
+                        : "text-[#666C68]"
                     )}
                   >
                     {isRunning
                       ? "Executing..."
                       : isCompleted
-                      ? "Completed"
+                      ? "Done"
                       : isFailed
-                      ? "Execution Failed"
+                      ? "Failed"
                       : isCancelled
                       ? "Cancelled"
                       : "Pending"}
@@ -183,6 +177,6 @@ export const PipelineVisualizer: React.FC<PipelineVisualizerProps> = ({
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 };

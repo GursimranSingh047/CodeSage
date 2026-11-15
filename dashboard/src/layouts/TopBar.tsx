@@ -1,17 +1,14 @@
 import React, { useState } from "react";
 import {
-  Search,
   Bell,
   Menu,
-  Command,
-  CheckCircle2,
-  AlertTriangle,
-  X,
 } from "lucide-react";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { NavigationTab } from "@/types/navigation";
 import { clsx } from "clsx";
 
 interface TopBarProps {
+  activeTab?: NavigationTab;
+  onTabChange?: (tab: NavigationTab) => void;
   onToggleSidebar?: () => void;
   isScanning?: boolean;
   statusText?: string;
@@ -19,122 +16,126 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
+  activeTab = "dashboard",
+  onTabChange,
   onToggleSidebar,
   isScanning = false,
   statusText = "Engine Ready",
   className,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const topNavTabs: { id: NavigationTab; label: string }[] = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "scan", label: "Scans" },
+    { id: "findings", label: "Findings" },
+    { id: "pull-requests", label: "Pull Requests" },
+    { id: "history", label: "History" },
+  ];
 
   return (
     <header
       className={clsx(
-        "h-16 px-4 sm:px-6 border-b border-white/[0.08] bg-sage-950/80 backdrop-blur-xl flex items-center justify-between gap-4 sticky top-0 z-20 select-none",
+        "h-16 px-4 sm:px-6 lg:px-8 border-b border-[#292D2A] bg-[#080909]/90 backdrop-blur-md flex items-center justify-between gap-4 sticky top-0 z-30 select-none",
         className
       )}
     >
-      {/* Left: Mobile Toggle & Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      {/* Left: Brand Identity + Mobile Trigger */}
+      <div className="flex items-center gap-6">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg bg-sage-900 border border-white/[0.08] text-sage-400 hover:text-white lg:hidden"
+          aria-label="Toggle navigation"
+          className="p-2 rounded-xl bg-[#101211] border border-[#292D2A] text-[#A5AAA6] hover:text-[#F4F5F4] hover:border-[#363C38] lg:hidden cursor-pointer"
         >
           <Menu className="w-4 h-4" />
         </button>
 
-        {/* Global Search Bar with ⌘K Indicator */}
-        <div className="relative w-full max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-sage-400">
-            <Search className="w-3.5 h-3.5" />
+        {/* Brand: </> CodeSage */}
+        <div
+          onClick={() => onTabChange?.("dashboard")}
+          className="flex items-center gap-2.5 cursor-pointer group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-[#151716] border border-[#292D2A] group-hover:border-[#8CFF8C]/50 flex items-center justify-center font-mono text-xs font-bold text-[#8CFF8C] transition-colors shadow-sm">
+            &lt;/&gt;
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search repositories, scans, findings, CWEs..."
-            className="w-full pl-9 pr-14 py-2 bg-sage-900/90 border border-white/[0.09] rounded-xl text-xs font-sans text-sage-100 placeholder-sage-500 focus:outline-none focus:border-accent-orange/50 focus:ring-1 focus:ring-accent-orange/40 transition-all hover:border-white/[0.16]"
-          />
-          <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
-            <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-medium text-sage-400 bg-sage-850 border border-white/[0.08] rounded shadow-sm">
-              <Command className="w-2.5 h-2.5" /> K
-            </kbd>
-          </div>
+          <span className="font-sans font-bold text-base text-[#F4F5F4] tracking-tight group-hover:text-white transition-colors">
+            CodeSage
+          </span>
         </div>
+
+        {/* Center Pill Tabs (Desktop) */}
+        <nav className="hidden md:flex items-center gap-1.5 ml-4 p-1 rounded-full bg-[#101211] border border-[#292D2A]">
+          {topNavTabs.map((tab) => {
+            const isActive =
+              activeTab === tab.id ||
+              (tab.id === "scan" && activeTab === "scan");
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onTabChange?.(tab.id)}
+                className={clsx(
+                  "px-3.5 py-1 rounded-full text-xs font-medium font-sans transition-all cursor-pointer",
+                  isActive
+                    ? "bg-[#16351F] text-[#8CFF8C] border border-[#8CFF8C]/40 shadow-[0_0_12px_rgba(140,255,140,0.15)]"
+                    : "text-[#A5AAA6] hover:text-[#F4F5F4] hover:bg-[#151716] border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Right: Engine Status, Notifications & Profile */}
+      {/* Right Controls: Engine Status, Notification Bell, User Avatar */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* CodeSage Engine Status */}
-        <Tooltip content="FastAPI LangGraph Multi-Scanner Pipeline">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-sage-900/90 text-xs font-mono">
-            <span
-              className={clsx(
-                "w-2 h-2 rounded-full",
-                isScanning
-                  ? "bg-accent-orange animate-ping"
-                  : "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
-              )}
-            />
-            <span className="text-sage-300 font-medium hidden sm:inline">
-              {isScanning ? "Scanning Active" : statusText}
-            </span>
-          </div>
-        </Tooltip>
+        {/* CodeSage Engine Status Pill */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#101211] border border-[#292D2A] text-xs font-mono">
+          <span
+            className={clsx(
+              "w-2 h-2 rounded-full",
+              isScanning
+                ? "bg-[#8CFF8C] animate-pulse shadow-[0_0_8px_rgba(140,255,140,0.9)]"
+                : "bg-[#52D96B]"
+            )}
+          />
+          <span className="text-[#A5AAA6] text-[11px]">
+            {isScanning ? "Scanning Active" : statusText}
+          </span>
+        </div>
 
-        {/* Notifications Popover Trigger */}
+        {/* Notifications */}
         <div className="relative">
-          <Tooltip content="Recent Audit Alerts">
-            <button
-              type="button"
-              onClick={() => setShowNotifications((p) => !p)}
-              className={clsx(
-                "relative p-2 rounded-xl border transition-colors",
-                showNotifications
-                  ? "bg-sage-850 border-accent-orange/40 text-accent-orange"
-                  : "bg-sage-900 border-white/[0.08] text-sage-400 hover:text-white hover:bg-sage-850"
-              )}
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-orange border-2 border-sage-950" />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            onClick={() => setShowNotifications((prev) => !prev)}
+            aria-label="Notifications"
+            className="p-2 rounded-full bg-[#101211] border border-[#292D2A] text-[#A5AAA6] hover:text-[#F4F5F4] hover:border-[#363C38] transition-colors relative cursor-pointer"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8CFF8C] ring-2 ring-[#080909]" />
+          </button>
 
-          {/* Notifications Dropdown Panel */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-xl bg-sage-900/95 backdrop-blur-xl border border-white/[0.12] shadow-glass-elevated p-3 z-50 space-y-2">
-              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                <span className="text-xs font-mono uppercase tracking-wider font-semibold text-sage-200">
-                  Audit Notifications
-                </span>
-                <button
-                  onClick={() => setShowNotifications(false)}
-                  className="text-sage-400 hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <div className="absolute right-0 mt-2 w-72 p-3 bg-[#101211] border border-[#292D2A] rounded-2xl shadow-elevated z-50 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#292D2A] text-[#F4F5F4] font-medium">
+                <span>System Notifications</span>
+                <span className="text-[10px] text-[#8CFF8C] font-mono">Live</span>
               </div>
-
-              <div className="space-y-1.5 text-xs">
-                <div className="p-2 rounded-lg bg-sage-850/60 border border-white/[0.06] flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-white">Verification Succeeded</div>
-                    <div className="text-[11px] text-sage-400">
-                      Patch verified in sandbox for shop.py:17 (CWE-89)
-                    </div>
-                  </div>
+              <div className="py-2.5 space-y-2 font-sans text-[#A5AAA6]">
+                <div className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#8CFF8C] mt-1 shrink-0" />
+                  <p className="text-[11px] leading-snug">
+                    AST taint pipeline verified 19 auto-remediated patches in background.
+                  </p>
                 </div>
-
-                <div className="p-2 rounded-lg bg-sage-850/60 border border-white/[0.06] flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-white">Critical Finding Detected</div>
-                    <div className="text-[11px] text-sage-400">
-                      Command injection in admin.py (CWE-78)
-                    </div>
-                  </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#52D96B] mt-1 shrink-0" />
+                  <p className="text-[11px] leading-snug">
+                    Security engines (Semgrep, Bandit, Gitleaks) synchronized.
+                  </p>
                 </div>
               </div>
             </div>
@@ -142,10 +143,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* User Avatar */}
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent-orange via-orange-600 to-accent-violet p-[1px] cursor-pointer">
-          <div className="w-full h-full rounded-full bg-sage-950 flex items-center justify-center font-mono font-semibold text-xs text-white">
-            GS
-          </div>
+        <div className="w-8 h-8 rounded-full bg-[#151716] border border-[#292D2A] text-[#F4F5F4] font-mono text-xs font-semibold flex items-center justify-center select-none shadow-sm cursor-pointer hover:border-[#8CFF8C]/50 transition-colors">
+          GS
         </div>
       </div>
     </header>

@@ -6,9 +6,9 @@ try:
 
     _root_env = Path(__file__).resolve().parent.parent / ".env"
     if _root_env.is_file():
-        load_dotenv(_root_env)
+        load_dotenv(_root_env, override=True)
     else:
-        load_dotenv()
+        load_dotenv(override=True)
 except ImportError:
     pass
 

@@ -6,11 +6,14 @@ export type BadgeVariant =
   | Severity
   | "default"
   | "success"
+  | "green"
   | "warning"
+  | "amber"
+  | "charcoal"
+  | "neutral"
   | "orange"
   | "violet"
-  | "teal"
-  | "neutral";
+  | "teal";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -21,33 +24,45 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<string, string> = {
-  critical: "bg-rose-500/10 text-rose-400 border-rose-500/30",
-  high: "bg-rose-500/10 text-rose-400 border-rose-500/25",
-  medium: "bg-accent-orange-muted text-orange-400 border-accent-orange/30",
-  low: "bg-accent-teal-muted text-teal-400 border-accent-teal/30",
-  informational: "bg-sage-800/80 text-sage-300 border-sage-700/60",
-  default: "bg-sage-850 text-sage-200 border-white/[0.08]",
-  neutral: "bg-sage-900 text-sage-400 border-white/[0.06]",
-  success: "bg-accent-emerald-muted text-emerald-400 border-accent-emerald/30",
-  warning: "bg-accent-amber-muted text-amber-400 border-accent-amber/30",
-  orange: "bg-accent-orange-muted text-orange-400 border-accent-orange/30",
-  violet: "bg-accent-violet-muted text-violet-400 border-accent-violet/30",
-  teal: "bg-accent-teal-muted text-teal-400 border-accent-teal/30",
+  // Precision technical severity badges
+  critical: "bg-[#FF5555]/10 text-[#FF5555] border border-[#FF5555]/30",
+  high: "bg-[#FFB84D]/10 text-[#FFB84D] border border-[#FFB84D]/30",
+  medium: "bg-[#151716] text-[#A5AAA6] border border-[#292D2A]",
+  low: "bg-[#101211] text-[#666C68] border border-[#292D2A]",
+  informational: "bg-[#101211] text-[#666C68] border border-[#292D2A]",
+
+  // Green / Success / Verified status
+  green: "bg-[#8CFF8C]/10 text-[#8CFF8C] border border-[#8CFF8C]/35",
+  success: "bg-[#8CFF8C]/10 text-[#8CFF8C] border border-[#8CFF8C]/35",
+  amber: "bg-[#8CFF8C]/10 text-[#8CFF8C] border border-[#8CFF8C]/35",
+
+  // Neutral technical surfaces
+  default: "bg-[#151716] text-[#F4F5F4] border border-[#292D2A]",
+  charcoal: "bg-[#151716] text-[#F4F5F4] border border-[#292D2A]",
+  neutral: "bg-[#101211] text-[#A5AAA6] border border-[#292D2A]",
+  warning: "bg-[#FFB84D]/10 text-[#FFB84D] border border-[#FFB84D]/30",
+
+  orange: "bg-[#FFB84D]/10 text-[#FFB84D] border border-[#FFB84D]/30",
+  violet: "bg-[#151716] text-[#F4F5F4] border border-[#292D2A]",
+  teal: "bg-[#8CFF8C]/10 text-[#8CFF8C] border border-[#8CFF8C]/35",
 };
 
 const dotStyles: Record<string, string> = {
-  critical: "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]",
-  high: "bg-rose-400",
-  medium: "bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.6)]",
-  low: "bg-teal-400",
-  informational: "bg-sage-400",
-  default: "bg-sage-400",
-  neutral: "bg-sage-500",
-  success: "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]",
-  warning: "bg-amber-400",
-  orange: "bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.6)]",
-  violet: "bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.6)]",
-  teal: "bg-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.6)]",
+  critical: "bg-[#FF5555]",
+  high: "bg-[#FFB84D]",
+  medium: "bg-[#A5AAA6]",
+  low: "bg-[#666C68]",
+  informational: "bg-[#666C68]",
+  green: "bg-[#8CFF8C] shadow-[0_0_6px_rgba(140,255,140,0.8)]",
+  success: "bg-[#8CFF8C] shadow-[0_0_6px_rgba(140,255,140,0.8)]",
+  amber: "bg-[#8CFF8C] shadow-[0_0_6px_rgba(140,255,140,0.8)]",
+  default: "bg-[#8CFF8C]",
+  charcoal: "bg-[#F4F5F4]",
+  neutral: "bg-[#666C68]",
+  warning: "bg-[#FFB84D]",
+  orange: "bg-[#FFB84D]",
+  violet: "bg-[#8CFF8C]",
+  teal: "bg-[#8CFF8C]",
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -60,11 +75,11 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1.5 font-mono uppercase tracking-wider rounded-md border font-medium select-none",
-        size === "xs" && "px-1.5 py-0.2 text-[9px]",
-        size === "sm" && "px-2 py-0.5 text-[10px]",
-        size === "md" && "px-2.5 py-1 text-xs",
+        "inline-flex items-center font-mono font-medium tracking-tight rounded-full select-none",
         variantStyles[variant] || variantStyles.default,
+        size === "xs" && "px-2 py-0.5 text-[10px] gap-1",
+        size === "sm" && "px-2.5 py-0.5 text-[11px] gap-1.5",
+        size === "md" && "px-3 py-1 text-xs gap-1.5",
         className
       )}
     >
@@ -72,7 +87,7 @@ export const Badge: React.FC<BadgeProps> = ({
         <span
           className={clsx(
             "w-1.5 h-1.5 rounded-full shrink-0",
-            dotStyles[variant] || dotStyles.default
+            dotStyles[variant] || "bg-[#8CFF8C]"
           )}
         />
       )}

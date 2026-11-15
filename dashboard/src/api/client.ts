@@ -103,6 +103,35 @@ export const api = {
     });
   },
 
+  /** Create a real GitHub Pull Request for a verified finding remediation */
+  createPullRequest: (
+    scanId: string,
+    findingId: string
+  ): Promise<{
+    success: boolean;
+    pr_number: number;
+    pr_url: string;
+    branch: string;
+    base_branch: string;
+    finding_id: string;
+    status: string;
+    title: string;
+  }> => {
+    return request(`/scan/${scanId}/findings/${encodeURIComponent(findingId)}/create-pr`, {
+      method: "POST",
+    });
+  },
+
+  /** Submit review decision alias for backward compatibility */
+  submitReviewDecision: (
+    scanId: string,
+    findingId: string,
+    decision: "approved" | "rejected",
+    notes?: string
+  ): Promise<{ status: string; finding_id: string; review_status: string; review_notes?: string }> => {
+    return api.reviewFinding(scanId, findingId, { decision, notes });
+  },
+
   /** List previous scan runs */
   listScans: (): Promise<{ scans: ScanHistoryItem[] }> => {
     return request("/scans");

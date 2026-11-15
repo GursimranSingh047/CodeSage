@@ -8,7 +8,6 @@ import { HistoryPage } from "@/pages/HistoryPage";
 import { ReportsPage } from "@/pages/ReportsPage";
 import { NavigationTab } from "@/types/navigation";
 import { useScan } from "@/hooks/useScan";
-import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FolderGit2, Settings } from "lucide-react";
 
@@ -44,6 +43,8 @@ export const App: React.FC = () => {
         <DashboardPage
           onStartScan={handleStartScan}
           onSelectScan={handleSelectScan}
+          onNavigateToFindings={() => setActiveTab("findings")}
+          onNavigateToPR={() => setActiveTab("pull-requests")}
           isScanning={scan.isScanning}
         />
       )}
@@ -66,19 +67,21 @@ export const App: React.FC = () => {
           isCancelling={scan.isCancelling}
           onCancelScan={scan.cancelScan}
           onBackToDashboard={() => setActiveTab("dashboard")}
+          onNavigateToFindings={() => setActiveTab("findings")}
+          onNavigateToPR={() => setActiveTab("pull-requests")}
         />
       )}
 
       {activeTab === "repositories" && (
-        <Card className="p-8">
+        <div className="surface-card rounded-2xl p-8 border border-[#292D2A] max-w-2xl mx-auto">
           <EmptyState
-            icon={<FolderGit2 className="w-6 h-6 text-accent-violet" />}
+            icon={<FolderGit2 className="w-6 h-6 text-[#8CFF8C]" />}
             title="Connected Repositories"
             description="Manage monitored codebases, scheduled background automations, and GitHub Webhook integrations."
             actionLabel="Connect GitHub Repository"
             onAction={() => setActiveTab("scan")}
           />
-        </Card>
+        </div>
       )}
 
       {activeTab === "findings" && (
@@ -132,15 +135,15 @@ export const App: React.FC = () => {
       )}
 
       {activeTab === "settings" && (
-        <Card className="p-8">
+        <div className="surface-card rounded-2xl p-8 border border-[#292D2A] max-w-2xl mx-auto">
           <EmptyState
-            icon={<Settings className="w-6 h-6 text-sage-400" />}
+            icon={<Settings className="w-6 h-6 text-[#A5AAA6]" />}
             title="Platform & Scanner Settings"
             description="Configure Semgrep custom rule paths, Bandit issue filters, Gitleaks regex expressions, and Docker sandbox execution policies."
             actionLabel="Back to Dashboard"
             onAction={() => setActiveTab("dashboard")}
           />
-        </Card>
+        </div>
       )}
     </AppShell>
   );

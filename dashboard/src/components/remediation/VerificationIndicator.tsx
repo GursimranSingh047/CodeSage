@@ -18,7 +18,6 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
   const isFailed = status === "failed";
   const isPending = status === "pending";
 
-  // SVG geometry for circular completion ring (diameter = 96, radius = 42)
   const size = 96;
   const strokeWidth = 3.5;
   const radius = (size - strokeWidth * 2) / 2;
@@ -27,25 +26,25 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
   return (
     <div
       className={clsx(
-        "flex flex-col sm:flex-row items-center gap-5 p-5 rounded-2xl border transition-all",
+        "flex flex-col sm:flex-row items-center gap-5 p-6 rounded-2xl surface-card border transition-all select-none",
         isVerified &&
-          "bg-sage-950/80 border-emerald-500/25 shadow-[0_0_24px_rgba(16,185,129,0.12)]",
+          "border-[#8CFF8C]/35 shadow-[0_0_24px_rgba(140,255,140,0.12)]",
         isFailed &&
-          "bg-sage-950/80 border-rose-500/25 shadow-[0_0_24px_rgba(244,63,94,0.12)]",
+          "border-[#FF5555]/30 shadow-[0_0_24px_rgba(255,85,85,0.12)]",
         isPending &&
-          "bg-sage-950/80 border-amber-500/25 shadow-[0_0_24px_rgba(245,158,11,0.08)]",
+          "border-[#8CFF8C]/40 shadow-[0_0_24px_rgba(140,255,140,0.1)]",
         className
       )}
     >
       {/* 1. Large Circular Animated Ring Indicator */}
       <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
-        {/* Subtle radial ambient backglow - restrained, not flooding */}
+        {/* Subtle radial ambient backglow */}
         <div
           className={clsx(
             "absolute inset-0 rounded-full blur-xl pointer-events-none transition-opacity",
-            isVerified && "bg-emerald-500/15 opacity-80",
-            isFailed && "bg-rose-500/15 opacity-80",
-            isPending && "bg-amber-500/10 opacity-60"
+            isVerified && "bg-[#8CFF8C]/15 opacity-80",
+            isFailed && "bg-[#FF5555]/15 opacity-80",
+            isPending && "bg-[#8CFF8C]/20 opacity-80"
           )}
         />
 
@@ -56,7 +55,6 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
           viewBox={`0 0 ${size} ${size}`}
           className="rotate-[-90deg] relative z-10"
         >
-          {/* Background track circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -64,10 +62,9 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
             stroke="currentColor"
             strokeWidth={strokeWidth}
             fill="transparent"
-            className="text-white/[0.06]"
+            className="text-[#1A1D1B]"
           />
 
-          {/* Animated Foreground Progress Circle */}
           <motion.circle
             cx={size / 2}
             cy={size / 2}
@@ -86,19 +83,19 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
               ease: [0.16, 1, 0.3, 1],
             }}
             className={clsx(
-              isVerified && "text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]",
-              isFailed && "text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.5)]",
-              isPending && "text-amber-400"
+              isVerified && "text-[#8CFF8C]",
+              isFailed && "text-[#FF5555]",
+              isPending && "text-[#8CFF8C]"
             )}
           />
         </svg>
 
-        {/* Center Icon with entrance animation */}
+        {/* Center Icon */}
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           {isVerified && (
             <motion.svg
               viewBox="0 0 24 24"
-              className="w-10 h-10 text-emerald-400"
+              className="w-10 h-10 text-[#8CFF8C]"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
@@ -123,7 +120,7 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", damping: 15, delay: 0.2 }}
-              className="text-rose-400"
+              className="text-[#FF5555]"
             >
               <X className="w-10 h-10" />
             </motion.div>
@@ -133,7 +130,7 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="text-amber-400"
+              className="text-[#8CFF8C]"
             >
               <Clock className="w-8 h-8" />
             </motion.div>
@@ -148,11 +145,11 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
             className={clsx(
               "px-2.5 py-0.5 rounded font-mono text-xs font-bold tracking-widest uppercase border",
               isVerified &&
-                "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+                "bg-[#16351F] text-[#8CFF8C] border-[#8CFF8C]/35",
               isFailed &&
-                "bg-rose-500/10 text-rose-400 border-rose-500/30",
+                "bg-[#FF5555]/10 text-[#FF5555] border-[#FF5555]/30",
               isPending &&
-                "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                "bg-[#16351F] text-[#8CFF8C] border-[#8CFF8C]/35"
             )}
           >
             {isVerified
@@ -162,28 +159,20 @@ export const VerificationIndicator: React.FC<VerificationIndicatorProps> = ({
               : "VERIFYING"}
           </span>
 
-          {durationSeconds !== undefined && durationSeconds > 0 && (
-            <span className="text-[11px] font-mono text-sage-400 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-sage-500" />
-              <span>{durationSeconds}s elapsed</span>
+          {typeof durationSeconds === "number" && (
+            <span className="text-[11px] font-mono text-[#666C68]">
+              Completed in {durationSeconds.toFixed(1)}s
             </span>
           )}
         </div>
 
-        <h3 className="text-base sm:text-lg font-sans font-bold text-white tracking-tight">
-          {isVerified
-            ? "Isolated Sandbox Guarantee Active"
-            : isFailed
-            ? "Patch Failed Isolated Verification"
-            : "Executing Isolated Sandbox Checks..."}
-        </h3>
-
-        <p className="text-xs text-sage-300 font-sans leading-relaxed max-w-xl">
-          {isVerified
-            ? "Candidate patch passed dual verification: zero security alerts detected on static re-scan and all automated regression unit tests completed green."
-            : isFailed
-            ? "The synthesized patch could not satisfy sandbox criteria. Code remains locked and flagged for automated retry or human engineering review."
-            : "Mounting clean workspace container to re-run static analysis engine and execute full regression test suites."}
+        <p className="text-xs text-[#A5AAA6] font-sans max-w-md">
+          {isVerified &&
+            "Patch atomically applied, syntax parsed with 0 errors, security scan produced 0 findings, and test assertions passed."}
+          {isFailed &&
+            "One or more verification checks failed. The pull request will not be opened until the patch passes regression validation."}
+          {isPending &&
+            "Running dual validation: static security scan with AST analysis and automated test suite in isolated Docker container."}
         </p>
       </div>
     </div>

@@ -90,10 +90,17 @@ class ReviewRequest(BaseModel):
 class ScanRun:
     """Thread-safe record of one pipeline run with persistence support."""
 
-    def __init__(self, scan_id: str, repo_url: str, branch: Optional[str] = None):
+    def __init__(
+        self,
+        scan_id: str,
+        repo_url: str,
+        branch: Optional[str] = None,
+        github_repo: Optional[str] = None,
+    ):
         self.id = scan_id
         self.repo_url = repo_url
         self.branch = branch
+        self.github_repo = github_repo
         self.status = "running"
         self.started = time.time()
         self.finished: Optional[float] = None
@@ -175,6 +182,7 @@ class ScanRun:
                 "id": self.id,
                 "repo_url": self.repo_url,
                 "branch": self.branch,
+                "github_repo": getattr(self, "github_repo", None),
                 "status": self.status,
                 "started": self.started,
                 "finished": self.finished,
@@ -190,7 +198,12 @@ class ScanRun:
 
     @classmethod
     def from_dict(cls, data: dict) -> "ScanRun":
-        run = cls(data["id"], data["repo_url"], branch=data.get("branch"))
+        run = cls(
+            data["id"],
+            data["repo_url"],
+            branch=data.get("branch"),
+            github_repo=data.get("github_repo"),
+        )
         run.status = data.get("status", "completed")
         run.started = data.get("started", 0.0)
         run.finished = data.get("finished")
@@ -329,6 +342,8 @@ def _handle_delta(run: ScanRun, node: str, delta: dict) -> None:
                 "status": entry["status"],
                 "cwe_id": entry.get("cwe_id"),
                 "pr_url": entry.get("pr_url"),
+                "pr_number": entry.get("pr_number"),
+                "branch": entry.get("branch"),
                 "attempts": entry.get("attempts", 1),
                 "failure_reason": entry.get("failure_reason"),
             })
@@ -575,9 +590,19 @@ def _demo_config(req: ScanRequest) -> PipelineConfig:
             "attempt_number": 1,
         })
 
+    gh_repo = req.github_repo
+    if not gh_repo and req.target_url:
+        try:
+            val = validate_github_url(req.target_url)
+            gh_repo = val.get("full_name")
+        except Exception:
+            pass
+
+    gh_token = req.github_token or os.environ.get("GITHUB_TOKEN")
+
     return PipelineConfig(
         repo_input=req.target_url, llm=MockLLM(responder=responder),
-        backend=LocalBackend(), github_repo=req.github_repo,
+        backend=LocalBackend(), github_repo=gh_repo, github_token=gh_token,
         base_branch=req.target_branch, scanners=tuple(req.scanners),
     )
 
@@ -648,9 +673,19 @@ def create_app(
         from codesage.llm import create_llm
         from codesage.verification import get_backend
 
+        gh_repo = req.github_repo
+        if not gh_repo and req.target_url:
+            try:
+                val = validate_github_url(req.target_url)
+                gh_repo = val.get("full_name")
+            except Exception:
+                pass
+
+        gh_token = req.github_token or os.environ.get("GITHUB_TOKEN")
+
         return PipelineConfig(
             repo_input=req.target_url, llm=create_llm(), backend=get_backend(),
-            github_repo=req.github_repo, github_token=req.github_token,
+            github_repo=gh_repo, github_token=gh_token,
             base_branch=req.target_branch,
             scanners=tuple(req.scanners),
         )
@@ -711,11 +746,15 @@ def create_app(
             config = factory(req)
             if target_branch:
                 config.base_branch = target_branch
+            if req.github_repo and not config.github_repo:
+                config.github_repo = req.github_repo
+            if is_remote and not config.github_repo and val.get("full_name"):
+                config.github_repo = val.get("full_name")
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         scan_id = uuid.uuid4().hex[:12]
-        run = ScanRun(scan_id, target_url, branch=target_branch)
+        run = ScanRun(scan_id, target_url, branch=target_branch, github_repo=config.github_repo)
         runs[scan_id] = run
 
         status = limiter.try_submit(scan_id, _run_scan, run, config, storage)
@@ -888,15 +927,44 @@ def create_app(
             "current_finding": run.current_finding.id if run.current_finding else None,
         }
 
+    def _find_completed_entry(run, fid: str):
+        """Find a finding entry in run.completed by canonical finding_id, id, or display_id."""
+        if not fid:
+            return None
+        clean_fid = str(fid).strip()
+        for idx, entry in enumerate(run.completed):
+            if (
+                entry.get("finding_id") == clean_fid
+                or entry.get("id") == clean_fid
+                or entry.get("display_id") == clean_fid
+            ):
+                return entry
+            # Match 1-based index or display format (e.g. F-001 or F-1)
+            if clean_fid.upper() in (f"F-{idx+1:03d}", f"F-{idx+1}", f"F-0{idx+1}"):
+                return entry
+        return None
+
     @app.get("/scan/{scan_id}/findings")
     def scan_findings(scan_id: str):
         run = _get_run(scan_id)
+        # Ensure display_id and id are always populated on each completed item
+        for idx, entry in enumerate(run.completed):
+            if not entry.get("id"):
+                entry["id"] = entry.get("finding_id")
+            if not entry.get("display_id"):
+                entry["display_id"] = f"F-{idx+1:03d}"
         return {"completed": run.completed, "current_finding": run.current_finding}
 
-    @app.get("/scan/{scan_id}/findings/{finding_id}/artifacts")
+    @app.get("/scan/{scan_id}/findings/{finding_id:path}/artifacts")
     def finding_artifacts(scan_id: str, finding_id: str):
         run = _get_run(scan_id)
         artifacts = run.artifacts.get(finding_id)
+        if artifacts is None:
+            target = _find_completed_entry(run, finding_id)
+            if target:
+                canonical = target.get("finding_id") or target.get("id")
+                if canonical:
+                    artifacts = run.artifacts.get(canonical)
         if artifacts is None:
             raise HTTPException(status_code=404, detail=f"no artifacts for {finding_id!r}")
         return artifacts
@@ -908,7 +976,7 @@ def create_app(
         review_items = [f for f in run.completed if f.get("status") == "needs_human_review"]
         return {"scan_id": run.id, "count": len(review_items), "findings": review_items}
 
-    @app.post("/scan/{scan_id}/findings/{finding_id}/review")
+    @app.post("/scan/{scan_id}/findings/{finding_id:path}/review")
     def review_finding(scan_id: str, finding_id: str, req: ReviewRequest):
         """Approve or reject a finding that was escalated to human review."""
         run = _get_run(scan_id)
@@ -916,14 +984,11 @@ def create_app(
         if decision not in ("approved", "rejected"):
             raise HTTPException(status_code=400, detail="decision must be 'approved' or 'rejected'")
 
-        target = None
-        for entry in run.completed:
-            if entry.get("finding_id") == finding_id:
-                target = entry
-                break
+        target = _find_completed_entry(run, finding_id)
         if target is None:
             raise HTTPException(status_code=404, detail=f"finding {finding_id!r} not found in scan")
 
+        canonical_fid = target.get("finding_id") or target.get("id") or finding_id
         target["review_status"] = decision
         target["review_notes"] = req.notes
         if req.manual_patch:
@@ -931,17 +996,238 @@ def create_app(
 
         run.emit({
             "type": "finding_reviewed",
-            "finding_id": finding_id,
+            "finding_id": canonical_fid,
             "decision": decision,
             "notes": req.notes,
         })
         storage.save_run(run.to_dict())
         return {
             "status": "ok",
-            "finding_id": finding_id,
+            "finding_id": canonical_fid,
             "review_status": decision,
             "review_notes": req.notes,
         }
+
+    @app.post("/scan/{scan_id}/findings/{finding_id:path}/create-pr")
+    def create_pr_for_finding(
+        scan_id: str,
+        finding_id: str,
+        github_repo: Optional[str] = Query(None, description="Optional GitHub repo owner/name override"),
+    ):
+        """Create a real GitHub Pull Request for a verified finding remediation."""
+        run = _get_run(scan_id)
+
+        target = _find_completed_entry(run, finding_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail=f"finding {finding_id!r} not found in scan")
+
+        canonical_fid = target.get("finding_id") or target.get("id") or finding_id
+
+        # 1. Duplicate PR protection: return existing PR info if already created
+        if target.get("pr_url"):
+            return {
+                "success": True,
+                "pr_number": target.get("pr_number"),
+                "pr_url": target.get("pr_url"),
+                "branch": target.get("branch"),
+                "base_branch": target.get("base_branch"),
+                "finding_id": canonical_fid,
+                "status": "pr_created",
+                "title": target.get("title", f"Fix for {canonical_fid}"),
+            }
+
+        artifacts = run.artifacts.get(canonical_fid, {}) or run.artifacts.get(finding_id, {})
+        if artifacts.get("pr", {}).get("pr_url"):
+            pr_info = artifacts["pr"]
+            target["pr_url"] = pr_info["pr_url"]
+            target["pr_number"] = pr_info.get("pr_number")
+            target["branch"] = pr_info.get("branch")
+            target["base_branch"] = pr_info.get("base_branch")
+            target["status"] = "verified_pr_opened"
+            storage.save_run(run.to_dict())
+            return {
+                "success": True,
+                "pr_number": pr_info.get("pr_number"),
+                "pr_url": pr_info["pr_url"],
+                "branch": pr_info.get("branch"),
+                "base_branch": pr_info.get("base_branch"),
+                "finding_id": canonical_fid,
+                "status": "pr_created",
+                "title": pr_info.get("title", f"Fix for {canonical_fid}"),
+            }
+
+        # 2. Validate patch, triage, and verification artifacts
+        patch_data = artifacts.get("patch")
+        if not patch_data:
+            raise HTTPException(
+                status_code=400,
+                detail="No patch available for this finding. A patch must be generated before creating a PR.",
+            )
+
+        patched_code = patch_data.get("patched_code", "")
+        original_code = patch_data.get("original_code", "")
+        if not patched_code.strip() or patched_code.strip() == original_code.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Patch is empty or identical to original code. Cannot submit an empty PR.",
+            )
+
+        verif_data = artifacts.get("verification")
+        if not verif_data or not verif_data.get("passed", False):
+            if target.get("status") not in ("verified_pr_skipped", "verified_pr_opened"):
+                failure_msg = verif_data.get("failure_reason") if verif_data else "Verification has not passed"
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot create PR: {failure_msg}",
+                )
+
+        triage_data = artifacts.get("triage")
+
+        # 3. Resolve GitHub repository full name (owner/repo)
+        gh_repo = github_repo or run.github_repo
+        if not gh_repo and run.repository_metadata:
+            gh_repo = run.repository_metadata.get("full_name")
+        if not gh_repo and run.repo_url:
+            try:
+                val = validate_github_url(run.repo_url)
+                gh_repo = val.get("full_name")
+            except Exception:
+                pass
+        if not gh_repo:
+            raise HTTPException(
+                status_code=400,
+                detail="Target repository is not a valid GitHub repository (e.g. owner/repo).",
+            )
+
+        # 4. Resolve GitHub authentication token securely from env
+        token = os.environ.get("GITHUB_TOKEN", "").strip()
+        if not token:
+            raise HTTPException(
+                status_code=400,
+                detail="GITHUB_TOKEN is not configured in the server environment. Please configure GITHUB_TOKEN.",
+            )
+
+        # 5. Instantiate schemas and invoke PyGithub PR agent
+        from codesage.pr_agent import PRError, _api, branch_name_for, create_pull_request, get_repo
+        from codesage.schemas import Patch, TriageResult, VerificationResult
+
+        try:
+            patch = Patch(**patch_data)
+            triage = (
+                TriageResult(**triage_data)
+                if triage_data
+                else TriageResult(
+                    finding_id=canonical_fid,
+                    is_real_vulnerability=True,
+                    confidence=target.get("confidence", 0.9),
+                    reasoning=target.get("reasoning", "Vulnerability remediation"),
+                    cwe_confirmed=target.get("cwe_id", "CWE-Security"),
+                    exploitability="high",
+                )
+            )
+            verif = (
+                VerificationResult(**verif_data)
+                if verif_data
+                else VerificationResult(
+                    finding_id=canonical_fid,
+                    scan_clean=True,
+                    tests_passed=True,
+                    passed=True,
+                )
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid finding artifacts schema: {exc}") from exc
+
+        try:
+            repo = get_repo(token, gh_repo)
+            expected_branch = branch_name_for(patch)
+
+            # Check if an open PR already exists on GitHub for this head branch
+            try:
+                open_prs = _api(
+                    lambda: list(repo.get_pulls(state="open", head=f"{repo.owner.login}:{expected_branch}")),
+                    "checking existing pull requests",
+                )
+            except Exception:
+                open_prs = []
+
+            if open_prs:
+                existing_pr = open_prs[0]
+                target["pr_url"] = existing_pr.html_url
+                target["pr_number"] = existing_pr.number
+                target["branch"] = expected_branch
+                target["base_branch"] = existing_pr.base.ref
+                target["status"] = "verified_pr_opened"
+                pr_record = {
+                    "pr_url": existing_pr.html_url,
+                    "pr_number": existing_pr.number,
+                    "branch": expected_branch,
+                    "base_branch": existing_pr.base.ref,
+                    "title": existing_pr.title,
+                }
+                run.artifacts.setdefault(canonical_fid, {})["pr"] = pr_record
+                if finding_id != canonical_fid:
+                    run.artifacts.setdefault(finding_id, {})["pr"] = pr_record
+                storage.save_run(run.to_dict())
+                return {
+                    "success": True,
+                    "pr_number": existing_pr.number,
+                    "pr_url": existing_pr.html_url,
+                    "branch": expected_branch,
+                    "base_branch": existing_pr.base.ref,
+                    "finding_id": canonical_fid,
+                    "status": "pr_created",
+                    "title": existing_pr.title,
+                }
+
+            # If branch already exists without an open PR, clean it up before creating new PR
+            try:
+                existing_ref = repo.get_git_ref(f"heads/{expected_branch}")
+                if existing_ref:
+                    existing_ref.delete()
+                    logger.info("Cleaned up existing branch %s before re-creating PR", expected_branch)
+            except Exception:
+                pass
+
+            base = run.branch or repo.default_branch
+            info = create_pull_request(repo, patch, triage, verif, base_branch=base)
+
+            target["pr_url"] = info["pr_url"]
+            target["pr_number"] = info["pr_number"]
+            target["branch"] = info["branch"]
+            target["base_branch"] = info["base_branch"]
+            target["status"] = "verified_pr_opened"
+            run.artifacts.setdefault(canonical_fid, {})["pr"] = info
+            if finding_id != canonical_fid:
+                run.artifacts.setdefault(finding_id, {})["pr"] = info
+
+            run.emit({
+                "type": "finding_done",
+                "finding_id": canonical_fid,
+                "status": "verified_pr_opened",
+                "cwe_id": target.get("cwe_id"),
+                "pr_url": info["pr_url"],
+                "pr_number": info["pr_number"],
+                "branch": info["branch"],
+            })
+            storage.save_run(run.to_dict())
+
+            return {
+                "success": True,
+                "pr_number": info["pr_number"],
+                "pr_url": info["pr_url"],
+                "branch": info["branch"],
+                "base_branch": info["base_branch"],
+                "finding_id": canonical_fid,
+                "status": "pr_created",
+                "title": info.get("title", f"Fix for {canonical_fid}"),
+            }
+        except PRError as exc:
+            logger.error("Failed to create GitHub PR for %s: %s", finding_id, exc)
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Unexpected error creating GitHub PR for %s", finding_id)
+            raise HTTPException(status_code=500, detail=f"Failed to create GitHub PR: {exc}") from exc
 
     @app.get("/scan/{scan_id}/events")
     def scan_events(scan_id: str):

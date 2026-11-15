@@ -14,7 +14,6 @@ import { LiveEventLog } from "@/components/scan/LiveEventLog";
 import { CancelScanModal } from "@/components/scan/CancelScanModal";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import { Finding, ScanEvent, ScanStatus } from "@/types";
 import { PipelineStageId, StageStatus } from "@/types/pipeline";
 import { staggerContainer, cardEntrance } from "@/animations/variants";
@@ -36,6 +35,8 @@ interface ScanOrchestrationPageProps {
   isCancelling: boolean;
   onCancelScan: () => Promise<void>;
   onBackToDashboard?: () => void;
+  onNavigateToFindings?: () => void;
+  onNavigateToPR?: () => void;
 }
 
 export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
@@ -55,6 +56,8 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
   isCancelling,
   onCancelScan,
   onBackToDashboard,
+  onNavigateToFindings,
+  onNavigateToPR,
 }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -67,17 +70,16 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
     }
   };
 
-  // If no scan is currently targeted
   if (!scanId) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center max-w-md mx-auto space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-sage-900 border border-white/[0.08] flex items-center justify-center text-sage-400">
+      <div className="surface-card rounded-2xl p-12 text-center max-w-md mx-auto space-y-4 border border-[#292D2A]">
+        <div className="w-12 h-12 rounded-xl bg-[#151716] border border-[#292D2A] flex items-center justify-center text-[#8CFF8C] mx-auto">
           <Layers className="w-6 h-6" />
         </div>
-        <h3 className="text-lg font-sans font-semibold text-white">
+        <h3 className="text-lg font-sans font-bold text-[#F4F5F4]">
           No Active Scan Selected
         </h3>
-        <p className="text-xs text-sage-400 font-sans leading-relaxed">
+        <p className="text-xs text-[#A5AAA6] font-sans leading-relaxed">
           Select an existing audit run from your history or launch a new scan from the command center.
         </p>
         {onBackToDashboard && (
@@ -108,15 +110,15 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-mono text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+            className="p-3.5 rounded-xl bg-[#FFB84D]/10 border border-[#FFB84D]/30 flex items-center justify-between text-xs font-mono text-[#FFB84D] shadow-sm"
           >
             <div className="flex items-center gap-2.5">
-              <WifiOff className="w-4 h-4 text-amber-400 animate-pulse" />
+              <WifiOff className="w-4 h-4 text-[#FFB84D] animate-pulse" />
               <span>
                 <strong>Live connection interrupted</strong> — Reconnecting to live WebSocket stream...
               </span>
             </div>
-            <span className="text-[11px] text-amber-400/80 hidden sm:inline">
+            <span className="text-[11px] text-[#FFB84D]/80 hidden sm:inline">
               Falling back to real-time REST polling
             </span>
           </motion.div>
@@ -129,7 +131,7 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
           <button
             type="button"
             onClick={onBackToDashboard}
-            className="inline-flex items-center gap-2 text-xs font-mono text-sage-400 hover:text-white transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-mono text-[#A5AAA6] hover:text-[#8CFF8C] transition-colors group cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Dashboard</span>
@@ -137,13 +139,13 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
         )}
 
         <div className="flex items-center gap-2">
-          <Badge variant="teal" size="xs" dot>
+          <Badge variant="green" size="xs" dot>
             Interactive Orchestrator
           </Badge>
         </div>
       </div>
 
-      {/* 2. Hero Scan Area (Circular animated progress, timer, metadata, cancel button) */}
+      {/* 2. Hero Scan Area matching Reference 2 */}
       <motion.div variants={cardEntrance}>
         <HeroScanArea
           repoUrl={repoUrl}
@@ -156,10 +158,13 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
           finishedAt={finishedAt}
           onCancelRequest={() => setShowCancelModal(true)}
           isCancelling={isCancelling}
+          onNavigateToFindings={onNavigateToFindings}
+          onNavigateToPR={onNavigateToPR}
+          findingsCount={findings.length}
         />
       </motion.div>
 
-      {/* 3. 7-Stage Pipeline Visualizer (Ingestion -> Scanning -> Context -> Triage -> Patch -> Verification -> PR) */}
+      {/* 3. 7-Stage Pipeline Visualizer */}
       <motion.div variants={cardEntrance}>
         <PipelineVisualizer
           currentStageId={currentStageId}
@@ -169,33 +174,35 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
 
       {/* 4. Live Event Log & Real-Time Findings Stream */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Real-Time Live WebSocket Terminal */}
+        {/* Real-Time Live Terminal */}
         <motion.div variants={cardEntrance} className="lg:col-span-2">
           <LiveEventLog
             events={events}
             isWsConnected={isWsConnected}
             isReconnecting={isReconnecting}
+            onNavigateToFindings={onNavigateToFindings}
+            onNavigateToPR={onNavigateToPR}
           />
         </motion.div>
 
         {/* Findings Discovered Live Panel */}
         <motion.div variants={cardEntrance} className="space-y-4">
-          <Card variant="elevated" className="p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between">
+          <div className="surface-card rounded-2xl p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between border border-[#292D2A]">
             <div className="space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-                <h4 className="text-sm font-sans font-semibold text-white tracking-tight flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-accent-teal" />
+              <div className="flex items-center justify-between pb-3 border-b border-[#292D2A]">
+                <h4 className="text-sm font-sans font-bold text-[#F4F5F4] tracking-tight flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#8CFF8C]" />
                   <span>Findings Triage</span>
                 </h4>
-                <span className="text-xs font-mono text-sage-400">
+                <span className="text-xs font-mono text-[#666C68]">
                   {findings.length} item{findings.length === 1 ? "" : "s"}
                 </span>
               </div>
 
               {findings.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <Sparkles className="w-6 h-6 text-sage-600 mx-auto animate-pulse" />
-                  <p className="text-xs text-sage-500 font-mono">
+                  <Sparkles className="w-6 h-6 text-[#666C68] mx-auto animate-pulse" />
+                  <p className="text-xs text-[#666C68] font-mono">
                     Discovering and triaging codebase findings...
                   </p>
                 </div>
@@ -204,7 +211,7 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
                   {findings.map((finding) => (
                     <div
                       key={finding.id}
-                      className="p-3 rounded-lg bg-sage-900 border border-white/[0.06] text-xs font-mono space-y-1 hover:border-white/[0.12] transition-colors"
+                      className="p-3 rounded-xl bg-[#151716] border border-[#292D2A] text-xs font-mono space-y-1 hover:border-[#363C38] transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <Badge
@@ -213,15 +220,15 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
                         >
                           {finding.severity}
                         </Badge>
-                        <span className="text-[10px] text-sage-500">
+                        <span className="text-[10px] text-[#666C68]">
                           {finding.status}
                         </span>
                       </div>
-                      <div className="text-sage-200 truncate font-semibold">
+                      <div className="text-[#F4F5F4] truncate font-semibold">
                         {finding.cwe_id || "Vulnerability"}
                       </div>
-                      <div className="text-[11px] text-sage-400 truncate flex items-center gap-1">
-                        <FileCode className="w-3 h-3 text-sage-500" />
+                      <div className="text-[11px] text-[#A5AAA6] truncate flex items-center gap-1">
+                        <FileCode className="w-3 h-3 text-[#666C68]" />
                         {finding.file_path}:{finding.line_number}
                       </div>
                     </div>
@@ -230,11 +237,11 @@ export const ScanOrchestrationPage: React.FC<ScanOrchestrationPageProps> = ({
               )}
             </div>
 
-            <div className="pt-3 border-t border-white/[0.06] text-[11px] font-mono text-sage-500 flex items-center justify-between">
+            <div className="pt-3 border-t border-[#292D2A] text-[11px] font-mono text-[#666C68] flex items-center justify-between">
               <span>Automatic sandbox testing</span>
-              <span className="text-emerald-400">Isolated</span>
+              <span className="text-[#8CFF8C] font-semibold">Isolated</span>
             </div>
-          </Card>
+          </div>
         </motion.div>
       </div>
 

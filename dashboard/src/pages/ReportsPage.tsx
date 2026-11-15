@@ -14,7 +14,6 @@ import {
   Clock,
   ChevronDown,
   GitPullRequest,
-  Sparkles,
   ExternalLink,
 } from "lucide-react";
 import { api } from "@/api/client";
@@ -25,10 +24,8 @@ import {
   ScanHistoryItem,
   Severity,
 } from "@/types";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { cardEntrance, staggerContainer } from "@/animations/variants";
 import { clsx } from "clsx";
 
@@ -55,7 +52,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     "overview" | "findings" | "severity" | "timeline" | "triage" | "fixes" | "verification" | "pr"
   >("overview");
 
-  // Load available scans list
   const loadScansList = async () => {
     try {
       const res = await api.listScans();
@@ -69,7 +65,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     }
   };
 
-  // Load detailed scan data for selectedScanId
   const loadReportData = async (scanId: string) => {
     try {
       setRefreshing(true);
@@ -108,7 +103,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     }
   }, [selectedScanId]);
 
-  // Download Markdown report
   const handleDownloadMarkdown = async () => {
     if (!selectedScanId) return;
     try {
@@ -127,7 +121,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     }
   };
 
-  // Copy Markdown report to clipboard
   const handleCopyMarkdown = async () => {
     if (!selectedScanId) return;
     try {
@@ -140,7 +133,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     }
   };
 
-  // Severity counts
   const severityCounts = useMemo(() => {
     const counts: Record<Severity, number> = {
       critical: 0,
@@ -172,20 +164,20 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-6 max-w-7xl mx-auto"
     >
-      {/* 1. Header Bar with Scan Selector & Actions */}
+      {/* 1. Header Bar */}
       <motion.div variants={cardEntrance} className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-accent-orange/30 bg-accent-orange/10 text-accent-orange text-xs font-mono font-medium">
-              <FileText className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#292D2A] bg-[#101211] text-[#8CFF8C] text-xs font-mono font-medium">
+              <span className="w-2 h-2 rounded-full bg-[#8CFF8C] animate-pulse" />
               <span>Security & Engineering Audit Dossier</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight text-[#F4F5F4]">
               Scan Audit Report
             </h1>
-            <p className="text-xs text-sage-400 font-sans max-w-2xl">
+            <p className="text-xs text-[#A5AAA6] font-sans max-w-2xl">
               Comprehensive security verification report with AST triage evidence, unified patch diffs, and cryptographic sandbox receipts.
             </p>
           </div>
@@ -197,7 +189,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
                 <select
                   value={selectedScanId || ""}
                   onChange={(e) => setSelectedScanId(e.target.value)}
-                  className="pl-3 pr-8 py-1.5 rounded-xl bg-sage-900 border border-white/[0.08] text-white font-mono text-xs appearance-none focus:outline-none focus:border-accent-orange/50 cursor-pointer"
+                  className="pl-3 pr-8 py-2 rounded-xl bg-[#151716] border border-[#292D2A] text-[#F4F5F4] font-mono text-xs appearance-none focus:outline-none focus:border-[#8CFF8C] cursor-pointer"
                 >
                   {availableScans.map((s) => (
                     <option key={s.scan_id} value={s.scan_id}>
@@ -205,17 +197,17 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-sage-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#666C68] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
             {selectedScanId && onNavigateToScan && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => onNavigateToScan(selectedScanId)}
               >
-                Scan Pipeline →
+                Pipeline View →
               </Button>
             )}
 
@@ -234,7 +226,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
               variant="outline"
               size="sm"
               onClick={handleCopyMarkdown}
-              icon={copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              icon={copiedReport ? <Check className="w-3.5 h-3.5 text-[#8CFF8C]" /> : <Copy className="w-3.5 h-3.5" />}
               disabled={!selectedScanId}
             >
               {copiedReport ? "Copied" : "Copy Markdown"}
@@ -255,24 +247,29 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
       {/* 2. Main Content */}
       {loading ? (
-        <Card className="p-12 text-center space-y-3 font-mono">
-          <RefreshCw className="w-6 h-6 animate-spin text-accent-orange mx-auto" />
-          <p className="text-xs text-sage-400">Compiling security audit report...</p>
-        </Card>
+        <div className="surface-card rounded-2xl p-12 text-center space-y-3 font-mono border border-[#292D2A]">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#8CFF8C] mx-auto" />
+          <p className="text-xs text-[#A5AAA6]">Compiling security audit report...</p>
+        </div>
       ) : !selectedScanId || !scanRun ? (
-        <Card className="p-12">
-          <EmptyState
-            icon={<FileText className="w-8 h-8 text-accent-orange" />}
-            title="No Report Available"
-            description="Run an autonomous security audit to generate executive and engineering audit reports."
-            actionLabel="Start New Scan"
-            onAction={onStartNewScan}
-          />
-        </Card>
+        <div className="surface-card rounded-2xl p-12 border border-[#292D2A] text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-[#151716] border border-[#292D2A] flex items-center justify-center text-[#8CFF8C] mx-auto">
+            <FileText className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-sans font-bold text-[#F4F5F4]">No Report Available</h3>
+          <p className="text-xs text-[#A5AAA6] font-sans max-w-sm mx-auto">
+            Run an autonomous security audit to generate executive and engineering audit reports.
+          </p>
+          {onStartNewScan && (
+            <Button variant="primary" size="sm" onClick={onStartNewScan}>
+              Start New Scan
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 font-mono text-xs border-b border-white/[0.06]">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#101211] border border-[#292D2A] overflow-x-auto select-none font-mono text-xs">
             {[
               { id: "overview", label: "Overview" },
               { id: "severity", label: "Severity Breakdown" },
@@ -290,10 +287,10 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
                   type="button"
                   onClick={() => setActiveSection(tab.id as typeof activeSection)}
                   className={clsx(
-                    "px-3 py-2 rounded-lg font-semibold transition-all whitespace-nowrap",
+                    "px-3.5 py-2 rounded-xl font-medium transition-all whitespace-nowrap cursor-pointer",
                     active
-                      ? "bg-accent-orange/15 text-accent-orange border border-accent-orange/30 shadow-sm"
-                      : "text-sage-400 hover:text-white"
+                      ? "bg-[#16351F] text-[#8CFF8C] border border-[#8CFF8C]/35 font-semibold"
+                      : "text-[#A5AAA6] hover:text-[#F4F5F4]"
                   )}
                 >
                   {tab.label}
@@ -302,146 +299,106 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
             })}
           </div>
 
-          {/* =========================================================================
-              SECTION 1: OVERVIEW
-          ========================================================================= */}
+          {/* SECTION 1: OVERVIEW */}
           {activeSection === "overview" && (
             <motion.div variants={cardEntrance} className="space-y-6">
-              {/* Executive Summary Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+                <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
                     Total Findings
                   </span>
                   <div className="flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-accent-orange" />
-                    <span className="text-2xl font-mono font-bold text-white">
+                    <ShieldAlert className="w-4 h-4 text-[#FF5555]" />
+                    <span className="text-2xl font-mono font-bold text-[#F4F5F4]">
                       {totalFindings}
                     </span>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+                <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
                     Verified Clean Fixes
                   </span>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span className="text-2xl font-mono font-bold text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4 text-[#8CFF8C]" />
+                    <span className="text-2xl font-mono font-bold text-[#8CFF8C]">
                       {findings.filter((f) => f.status?.includes("verified")).length}
                     </span>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+                <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
                     False Positives Filtered
                   </span>
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-accent-teal" />
-                    <span className="text-2xl font-mono font-bold text-accent-teal">
+                    <ShieldCheck className="w-4 h-4 text-[#A5AAA6]" />
+                    <span className="text-2xl font-mono font-bold text-[#F4F5F4]">
                       {findings.filter((f) => f.status === "false_positive").length}
                     </span>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-sage-400 font-bold block">
+                <div className="surface-card rounded-2xl p-4 space-y-1 border border-[#292D2A]">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666C68] font-bold block">
                     Scan Duration
                   </span>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-accent-violet" />
-                    <span className="text-2xl font-mono font-bold text-white">
+                    <Clock className="w-4 h-4 text-[#666C68]" />
+                    <span className="text-2xl font-mono font-bold text-[#F4F5F4]">
                       {durationStr}
                     </span>
                   </div>
-                </Card>
+                </div>
               </div>
 
               {/* Target Metadata Dossier */}
-              <div className="p-6 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-4">
-                <h3 className="text-sm font-mono uppercase tracking-wider text-sage-300 font-bold flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-accent-orange" />
+              <div className="p-6 rounded-2xl surface-card border border-[#292D2A] space-y-4">
+                <h3 className="text-sm font-mono uppercase tracking-wider text-[#A5AAA6] font-bold flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-[#8CFF8C]" />
                   <span>Target Repository Metadata</span>
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
-                  <div className="p-3.5 rounded-xl bg-sage-950/70 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] uppercase text-sage-500 font-bold block">Repository</span>
-                    <span className="text-white font-semibold truncate block">{scanRun.repo_url}</span>
+                  <div className="p-4 rounded-xl bg-[#151716] border border-[#292D2A] space-y-1">
+                    <span className="text-[10px] uppercase text-[#666C68] font-bold block">Repository</span>
+                    <span className="text-[#F4F5F4] font-semibold truncate block">{scanRun.repo_url}</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-sage-950/70 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] uppercase text-sage-500 font-bold block">Branch</span>
-                    <div className="flex items-center gap-1.5 text-accent-orange">
+                  <div className="p-4 rounded-xl bg-[#151716] border border-[#292D2A] space-y-1">
+                    <span className="text-[10px] uppercase text-[#666C68] font-bold block">Branch</span>
+                    <div className="flex items-center gap-1.5 text-[#8CFF8C]">
                       <GitBranch className="w-3.5 h-3.5" />
                       <span>{scanRun.branch || "main"}</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-sage-950/70 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] uppercase text-sage-500 font-bold block">Scan ID</span>
-                    <span className="text-sage-300">{scanRun.id}</span>
+                  <div className="p-4 rounded-xl bg-[#151716] border border-[#292D2A] space-y-1">
+                    <span className="text-[10px] uppercase text-[#666C68] font-bold block">Scan ID</span>
+                    <span className="text-[#F4F5F4] font-mono truncate block">{scanRun.id}</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-sage-950/70 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] uppercase text-sage-500 font-bold block">Status</span>
-                    <Badge variant={scanRun.status === "complete" ? "success" : "violet"} size="sm" dot>
-                      {scanRun.status}
-                    </Badge>
+                  <div className="p-4 rounded-xl bg-[#151716] border border-[#292D2A] space-y-1">
+                    <span className="text-[10px] uppercase text-[#666C68] font-bold block">Final Status</span>
+                    <span className="text-[#8CFF8C] font-bold uppercase block">{scanRun.status}</span>
                   </div>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 2: SEVERITY BREAKDOWN
-          ========================================================================= */}
+          {/* SECTION 2: SEVERITY BREAKDOWN */}
           {activeSection === "severity" && (
-            <motion.div variants={cardEntrance} className="space-y-6">
-              <div className="p-6 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-6">
-                <h3 className="text-sm font-mono uppercase tracking-wider text-sage-300 font-bold">
-                  Severity Distribution Analysis
-                </h3>
-
-                <div className="space-y-4">
+            <motion.div variants={cardEntrance} className="space-y-4">
+              <div className="p-6 rounded-2xl surface-card border border-[#292D2A] space-y-5">
+                <h3 className="text-sm font-sans font-bold text-[#F4F5F4]">Severity Breakdown</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-xs">
                   {(["critical", "high", "medium", "low", "informational"] as Severity[]).map((sev) => {
                     const count = severityCounts[sev];
-                    const pct = totalFindings > 0 ? Math.round((count / totalFindings) * 100) : 0;
                     return (
-                      <div key={sev} className="space-y-1.5 font-mono text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="capitalize font-semibold text-white flex items-center gap-2">
-                            <span
-                              className={clsx(
-                                "w-2.5 h-2.5 rounded-full",
-                                sev === "critical" && "bg-rose-500",
-                                sev === "high" && "bg-orange-500",
-                                sev === "medium" && "bg-amber-400",
-                                sev === "low" && "bg-teal-400",
-                                sev === "informational" && "bg-sage-400"
-                              )}
-                            />
-                            {sev}
-                          </span>
-                          <span className="text-sage-400">
-                            <span className="text-white font-bold">{count}</span> ({pct}%)
-                          </span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-sage-900 border border-white/[0.04] overflow-hidden">
-                          <div
-                            className={clsx(
-                              "h-full rounded-full transition-all duration-500",
-                              sev === "critical" && "bg-rose-500",
-                              sev === "high" && "bg-orange-500",
-                              sev === "medium" && "bg-amber-400",
-                              sev === "low" && "bg-teal-400",
-                              sev === "informational" && "bg-sage-400"
-                            )}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
+                      <div key={sev} className="p-4 rounded-xl bg-[#151716] border border-[#292D2A] space-y-1 text-center">
+                        <span className="text-[10px] uppercase font-bold text-[#666C68] block">{sev}</span>
+                        <span className="text-2xl font-bold text-[#F4F5F4]">{count}</span>
                       </div>
                     );
                   })}
@@ -450,232 +407,98 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 3: FINDINGS
-          ========================================================================= */}
+          {/* SECTION 3: FINDINGS */}
           {activeSection === "findings" && (
             <motion.div variants={cardEntrance} className="space-y-3">
-              {findings.map((f) => (
-                <div
-                  key={f.finding_id || f.id}
-                  className="p-4 rounded-xl glass-panel border border-white/[0.06] space-y-2 font-mono text-xs"
-                >
-                  <div className="flex items-center justify-between gap-2">
+              {findings.map((f, idx) => (
+                <div key={idx} className="p-4 rounded-xl surface-card border border-[#292D2A] flex items-center justify-between">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          f.severity === "critical"
-                            ? "critical"
-                            : f.severity === "high"
-                            ? "warning"
-                            : "teal"
-                        }
-                        size="sm"
-                      >
-                        {f.severity}
-                      </Badge>
-                      <span className="font-bold text-white">{f.cwe_id || "Vulnerability"}</span>
-                      <span className="text-sage-500">via {f.tool_source}</span>
+                      <Badge variant={f.severity || "medium"} size="xs">{f.severity}</Badge>
+                      <span className="font-sans font-bold text-xs text-[#F4F5F4]">{f.cwe_id || "Vulnerability"}</span>
                     </div>
-
-                    <Badge variant="neutral" size="sm">
-                      {f.status || "discovered"}
-                    </Badge>
+                    <p className="text-xs font-mono text-[#666C68]">{f.file_path}:{f.line_number}</p>
                   </div>
-
-                  <p className="text-sage-300 font-sans text-xs">
-                    {f.raw_message || "Static analysis finding flagged by scanner engine."}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[11px] text-sage-400 pt-1 border-t border-white/[0.04]">
-                    <span>{f.file_path}:{f.line_number}</span>
-                    {f.status?.includes("verified") && (
-                      <span className="text-emerald-400 font-semibold inline-flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Verified Secure
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs font-mono text-[#A5AAA6]">{f.status}</span>
                 </div>
               ))}
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 4: AI ANALYSIS / TRIAGE
-          ========================================================================= */}
+          {/* SECTION 4: AI ANALYSIS */}
           {activeSection === "triage" && (
             <motion.div variants={cardEntrance} className="space-y-4">
-              {findings.map((f) => (
-                <div
-                  key={f.finding_id || f.id}
-                  className="p-5 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-3"
-                >
+              {findings.map((f, idx) => (
+                <div key={idx} className="p-5 rounded-xl surface-card border border-[#292D2A] space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent-violet" />
-                      <h4 className="font-sans font-bold text-white text-sm">
-                        {f.cwe_id || "AST Vulnerability"} Analysis
-                      </h4>
-                    </div>
-                    {f.confidence !== undefined && (
-                      <span className="font-mono text-xs text-accent-violet font-semibold">
-                        Calibrated Confidence: {Math.round(f.confidence * 100)}%
-                      </span>
-                    )}
+                    <span className="font-sans font-bold text-xs text-[#F4F5F4]">{f.cwe_id} ({f.file_path}:{f.line_number})</span>
+                    <Badge variant={f.severity || "medium"} size="xs">{f.severity}</Badge>
                   </div>
-
-                  <p className="text-xs text-sage-300 font-sans leading-relaxed">
-                    {f.reasoning || "AI model verified the control-flow sink and confirmed exploitable vulnerability paths."}
-                  </p>
-
-                  <div className="p-3 rounded-xl bg-sage-950 font-mono text-xs text-sage-400 flex items-center justify-between">
-                    <span>Target: {f.file_path}:{f.line_number}</span>
-                    <span className="text-accent-teal capitalize">{f.tool_source}</span>
-                  </div>
+                  <p className="text-xs text-[#A5AAA6] font-sans leading-relaxed">{f.reasoning || f.raw_message}</p>
                 </div>
               ))}
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 5: FIXES & PATCHES
-          ========================================================================= */}
+          {/* SECTION 5: FIXES & PATCHES */}
           {activeSection === "fixes" && (
             <motion.div variants={cardEntrance} className="space-y-4">
-              {findings
-                .filter((f) => f.status?.includes("verified") || f.status === "needs_human_review")
-                .map((f) => (
-                  <div
-                    key={f.finding_id || f.id}
-                    className="p-5 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-3 font-mono text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{f.file_path}</span>
-                      <Badge variant="success" size="sm" dot>Patch Synthesized</Badge>
-                    </div>
-
-                    <p className="text-xs font-sans text-sage-300">
-                      {f.explanation || "Autonomous code remediation generated to replace vulnerable execution primitive."}
-                    </p>
-
-                    <div className="p-3 rounded-xl bg-sage-950 border border-white/[0.04] text-[11px] text-sage-300 font-mono overflow-x-auto">
-                      <code>{f.code_snippet || "# Verified patch synthesized"}</code>
-                    </div>
-                  </div>
-                ))}
-            </motion.div>
-          )}
-
-          {/* =========================================================================
-              SECTION 6: VERIFICATION
-          ========================================================================= */}
-          {activeSection === "verification" && (
-            <motion.div variants={cardEntrance} className="space-y-4">
-              <div className="p-6 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-4 font-mono text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans font-bold text-white text-base">
-                      Isolated Execution Sandbox Audits
-                    </h4>
-                    <p className="text-sage-400 text-xs font-sans">
-                      All patches were executed in isolated workspace containers prior to acceptance.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                  <div className="p-3.5 rounded-xl bg-sage-950 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] text-sage-500 uppercase font-bold block">Static Analysis Re-Scan</span>
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> 100% Clean (0 secondary findings)
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-sage-950 border border-white/[0.06] space-y-1">
-                    <span className="text-[10px] text-sage-500 uppercase font-bold block">Regression Test Suite</span>
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Zero Functional Regressions
-                    </span>
-                  </div>
-                </div>
+              <div className="p-6 rounded-2xl surface-card border border-[#292D2A] space-y-3">
+                <h4 className="text-sm font-sans font-bold text-[#F4F5F4]">Synthesized Verified Patches</h4>
+                <p className="text-xs text-[#A5AAA6]">
+                  {findings.filter((f) => f.status?.includes("verified")).length} patch(es) synthesized and verified against AST regression suites.
+                </p>
               </div>
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 7: PULL REQUESTS
-          ========================================================================= */}
-          {activeSection === "pr" && (
-            <motion.div variants={cardEntrance} className="space-y-4 font-mono text-xs">
-              {findings
-                .filter((f) => f.pr_url || f.status === "verified_pr_opened" || f.status === "verified_pr_skipped")
-                .map((f) => (
-                  <div
-                    key={f.finding_id || f.id}
-                    className="p-5 rounded-2xl glass-panel-elevated border border-white/[0.08] space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <GitPullRequest className="w-4 h-4 text-accent-violet" />
-                        <span className="font-sans font-bold text-white text-sm">
-                          {f.pr_url ? "Pull Request Opened" : "Verified Local Fix"}
-                        </span>
-                      </div>
-                      <Badge variant={f.pr_url ? "violet" : "teal"} size="sm">
-                        {f.pr_url ? "GitHub PR" : "Local Workspace"}
-                      </Badge>
-                    </div>
-
-                    {f.pr_url ? (
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-sage-950 border border-white/[0.04]">
-                        <span className="text-accent-violet truncate">{f.pr_url}</span>
-                        <a
-                          href={f.pr_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-white hover:text-accent-violet font-sans font-semibold inline-flex items-center gap-1 shrink-0 ml-2"
-                        >
-                          <span>Open</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-sans text-sage-400">
-                        Fix verified locally without regression. Pull request dispatch was bypassed for local repository scan.
-                      </p>
-                    )}
-                  </div>
-                ))}
+          {/* SECTION 6: VERIFICATION */}
+          {activeSection === "verification" && (
+            <motion.div variants={cardEntrance} className="space-y-4">
+              <div className="p-6 rounded-2xl surface-card border border-[#292D2A] space-y-3">
+                <h4 className="text-sm font-sans font-bold text-[#F4F5F4]">Sandbox Verification Protocol</h4>
+                <p className="text-xs text-[#A5AAA6]">
+                  Each synthesized patch is injected into an isolated Docker workspace to confirm clean static re-scans and zero test regressions.
+                </p>
+              </div>
             </motion.div>
           )}
 
-          {/* =========================================================================
-              SECTION 8: TIMELINE
-          ========================================================================= */}
-          {activeSection === "timeline" && (
-            <motion.div variants={cardEntrance} className="space-y-2 font-mono text-xs">
-              {events.map((e, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-xl glass-panel border border-white/[0.06] flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full bg-accent-orange" />
-                    <span className="text-white font-semibold capitalize">
-                      {e.type.replace(/_/g, " ")}
-                    </span>
-                    {e.stage && <span className="text-accent-teal">[{e.stage}]</span>}
-                    {e.finding_id && <span className="text-sage-400 text-[11px] truncate max-w-xs">{e.finding_id}</span>}
+          {/* SECTION 7: PULL REQUESTS */}
+          {activeSection === "pr" && (
+            <motion.div variants={cardEntrance} className="space-y-4">
+              {findings.filter((f) => f.pr_url || f.status === "verified_pr_opened").map((f, idx) => (
+                <div key={idx} className="p-5 rounded-xl surface-card border border-[#292D2A] flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <GitPullRequest className="w-4 h-4 text-[#8CFF8C]" />
+                      <span className="font-bold text-xs text-[#F4F5F4]">{f.title || f.cwe_id}</span>
+                    </div>
+                    <p className="text-xs font-mono text-[#666C68]">{f.file_path}</p>
                   </div>
-
-                  <span className="text-[11px] text-sage-500 shrink-0">
-                    {e.ts ? new Date(e.ts).toLocaleTimeString() : `#${idx + 1}`}
-                  </span>
+                  {f.pr_url && (
+                    <a href={f.pr_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="xs" icon={<ExternalLink className="w-3.5 h-3.5" />}>
+                        Open PR
+                      </Button>
+                    </a>
+                  )}
                 </div>
               ))}
+            </motion.div>
+          )}
+
+          {/* SECTION 8: TIMELINE */}
+          {activeSection === "timeline" && (
+            <motion.div variants={cardEntrance} className="space-y-2">
+              <div className="p-4 rounded-xl bg-[#080909] border border-[#292D2A] font-mono text-xs space-y-1.5 max-h-96 overflow-y-auto">
+                {events.map((e, idx) => (
+                  <div key={idx} className="text-[#F4F5F4] flex items-start gap-2">
+                    <span className="text-[#666C68] shrink-0">[{e.ts ? new Date(e.ts).toLocaleTimeString() : "—"}]</span>
+                    <span>{e.message || e.type}</span>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           )}
         </div>

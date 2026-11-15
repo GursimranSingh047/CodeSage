@@ -16,11 +16,14 @@ export type FindingStatus =
   | "verified_pr_skipped"
   | "verification_failed"
   | "needs_human_review"
-  | "pr_failed";
+  | "pr_failed"
+  | "resolved";
 
 export interface Finding {
   id: string;
   finding_id?: string;
+  display_id?: string;
+  repo_url?: string;
   file_path: string;
   line_number: number;
   cwe_id: string | null;
@@ -47,6 +50,13 @@ export interface FindingArtifacts {
   triage?: TriageResult;
   patch?: Patch;
   verification?: VerificationResult;
+  pr?: {
+    pr_url: string;
+    pr_number?: number;
+    branch?: string;
+    base_branch?: string;
+    title?: string;
+  };
 }
 
 export interface CodeContext {
@@ -151,7 +161,12 @@ export interface ScanEvent {
     | "finding_done"
     | "run_complete"
     | "cancelled"
-    | "error";
+    | "error"
+    | "remediation_complete"
+    | "verification_result"
+    | "pr_created"
+    | "heartbeat"
+    | (string & {});
   ts?: string;
   repo?: string;
   count?: number;
@@ -170,6 +185,12 @@ export interface ScanEvent {
   message?: string;
   duration_s?: number;
   counts?: Record<string, number>;
+  model?: string;
+  verified?: boolean;
+  checks?: unknown[];
+  reason?: string;
+  pr_number?: number;
+  elapsed_seconds?: number;
 }
 
 export interface ScanRequestPayload {
