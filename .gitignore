@@ -9,7 +9,12 @@ codesage_data/
 .env
 .env.*
 !.env.example
-test-target-repo/
+# test-target-repo is a committed test fixture for Module 1 benchmarks and Modules 2-11 tests.
+# Only ignore its runtime artifacts and virtual environment:
+test-target-repo/venv/
+test-target-repo/.pytest_cache/
+test-target-repo/data/
+test-target-repo/__pycache__/
 codesage_data/
 .DS_Store
 *.log

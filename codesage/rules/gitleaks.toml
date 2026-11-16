@@ -9,3 +9,8 @@ paths = [
   '(^|/)(venv|\.venv|node_modules|__pycache__|data)/',
   '(^|/)\.git/',
 ]
+
+[[rules]]
+id = "custom-stripe-key"
+description = "Hardcoded API key or test placeholder"
+regex = '''(?i)STRIPE_TEST_KEY_PLACEHOLDER'''
