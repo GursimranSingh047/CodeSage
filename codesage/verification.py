@@ -332,16 +332,19 @@ class Verifier:
     def verify(self, finding: Finding, patch: Patch) -> VerificationResult:
         logger.info("[verify] enter finding=%r backend=%s", finding.id, self.backend.name)
 
-        def result(scan_clean=False, tests_passed=False, reason=None):
-            logger.info("[verify] exit finding=%r scan_clean=%s tests_passed=%s passed=%s reason=%r",
-                        finding.id, scan_clean, tests_passed, scan_clean and tests_passed,
+        def result(scan_clean=False, tests_passed=False, reason=None, tests_available=True, tests_status=None):
+            passed = scan_clean and (tests_passed if tests_available else True)
+            logger.info("[verify] exit finding=%r scan_clean=%s tests_passed=%s passed=%s tests_available=%s reason=%r",
+                        finding.id, scan_clean, tests_passed, passed, tests_available,
                         (reason or "")[:120])
             return VerificationResult(
                 finding_id=finding.id,
                 scan_clean=scan_clean,
                 tests_passed=tests_passed,
-                passed=scan_clean and tests_passed,
-                failure_reason=reason,
+                passed=passed,
+                failure_reason=reason if not passed else None,
+                tests_available=tests_available,
+                tests_status=tests_status or ("passed" if tests_passed else ("not_available" if not tests_available else "failed")),
             )
 
         try:
@@ -367,12 +370,26 @@ class Verifier:
             )
         shutil.rmtree(workdir.parent, ignore_errors=True)
 
+        is_no_tests = tests_reason == "no test suite found in repository (verification inconclusive)"
+        if is_no_tests:
+            # Repository has no test suite: do not automatically block PR creation.
+            # Verification passes if the security scanner re-scan is clean and patch applies cleanly.
+            return result(
+                scan_clean=scan_clean,
+                tests_passed=False,
+                tests_available=False,
+                tests_status="not_available",
+                reason=scan_reason if not scan_clean else None,
+            )
+
         if scan_clean and tests_passed:
-            return result(scan_clean=True, tests_passed=True)
+            return result(scan_clean=True, tests_passed=True, tests_available=True, tests_status="passed")
         reasons = [r for r in (scan_reason, tests_reason) if r]
         return result(
             scan_clean=scan_clean,
             tests_passed=tests_passed,
+            tests_available=True,
+            tests_status="failed" if not tests_passed else "passed",
             reason="; ".join(reasons) or "verification failed",
         )
 

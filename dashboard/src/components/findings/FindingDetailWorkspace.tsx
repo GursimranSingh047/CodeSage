@@ -112,10 +112,17 @@ export const FindingDetailWorkspace: React.FC<FindingDetailWorkspaceProps> = ({
     null;
 
   const hasPr = Boolean(effectivePrUrl || finding.status === "verified_pr_opened");
+  const isVerificationClean = Boolean(
+    artifacts?.verification?.passed ||
+    (artifacts?.verification?.scan_clean &&
+      (artifacts?.verification?.tests_available === false ||
+       artifacts?.verification?.tests_status === "not_available" ||
+       artifacts?.verification?.failure_reason?.includes("no test suite found")))
+  );
   const isVerified = Boolean(
     hasPr ||
     finding.status === "verified_pr_skipped" ||
-    artifacts?.verification?.passed
+    isVerificationClean
   );
 
   // Real or AST-extracted code snippets
@@ -581,13 +588,13 @@ export const FindingDetailWorkspace: React.FC<FindingDetailWorkspaceProps> = ({
                   size="lg"
                   onClick={() => window.open(effectivePrUrl, "_blank", "noopener,noreferrer")}
                   icon={<Github className="w-4 h-4 fill-current" />}
-                  className="w-full font-sans font-bold text-xs py-3.5 bg-[#8CFF8C] text-[#080909] hover:bg-[#52D96B] transition-colors"
+                  className="w-full font-sans font-bold text-xs py-3.5 bg-[#8CFF8C] text-[#080909] hover:bg-[#52D96B] transition-colors cursor-pointer"
                 >
-                  <span>Open Pull Request on GitHub →</span>
+                  <span>Open GitHub PR →</span>
                 </Button>
                 <div className="flex items-center justify-between text-[11px] font-mono text-[#A5AAA6] px-1">
                   <span className="text-[#8CFF8C] font-semibold">
-                    {effectivePrNumber ? `PR #${effectivePrNumber}` : "PR Opened"}
+                    {effectivePrNumber ? `Pull Request #${effectivePrNumber}` : "Pull Request Created"}
                   </span>
                   {effectiveBranch && (
                     <span className="truncate max-w-[150px] text-[#666C68]" title={effectiveBranch}>
@@ -604,9 +611,9 @@ export const FindingDetailWorkspace: React.FC<FindingDetailWorkspaceProps> = ({
                 loading={isCreatingPr}
                 disabled={!isVerified && !patch}
                 icon={<Github className="w-4 h-4 fill-current" />}
-                className="w-full font-sans font-bold text-xs py-3.5 bg-[#8CFF8C] text-[#080909] hover:bg-[#52D96B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full font-sans font-bold text-xs py-3.5 bg-[#8CFF8C] text-[#080909] hover:bg-[#52D96B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                <span>{isCreatingPr ? "Creating Pull Request..." : "Create Pull Request"}</span>
+                <span>{isCreatingPr ? "Creating..." : "Create Pull Request"}</span>
               </Button>
             )}
 

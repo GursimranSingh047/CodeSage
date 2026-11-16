@@ -2,11 +2,14 @@ import React from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Finding, Severity } from "@/types";
 import { clsx } from "clsx";
-import { ChevronRight, ShieldCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck, FilterX } from "lucide-react";
 import { getSecurityAnalysisDetails } from "@/utils/securityDetails";
 
 interface FindingListProps {
   findings: Finding[];
+  totalCount?: number;
+  isFiltered?: boolean;
+  onResetFilters?: () => void;
   selectedFindingId?: string | null;
   onSelectFinding: (finding: Finding) => void;
   className?: string;
@@ -90,11 +93,46 @@ export function getStatusBadgeInfo(status?: string): {
 
 export const FindingList: React.FC<FindingListProps> = ({
   findings,
+  totalCount = 0,
+  isFiltered = false,
+  onResetFilters,
   selectedFindingId,
   onSelectFinding,
   className,
 }) => {
   if (findings.length === 0) {
+    if (isFiltered || totalCount > 0) {
+      return (
+        <div
+          className={clsx(
+            "surface-card rounded-2xl border border-[#292D2A] p-10 text-center select-none bg-[#101211]",
+            className
+          )}
+        >
+          <div className="w-12 h-12 rounded-full bg-[#1A1D1B] border border-[#292D2A] text-[#A5AAA6] flex items-center justify-center mx-auto mb-3">
+            <FilterX className="w-6 h-6 text-[#A5AAA6]" />
+          </div>
+          <h3 className="font-sans font-bold text-sm text-[#F4F5F4]">
+            No security findings match this filter.
+          </h3>
+          <p className="text-xs text-[#A5AAA6] mt-1.5 max-w-sm mx-auto font-sans leading-relaxed">
+            Try adjusting or resetting your search, severity, or lifecycle status filters.
+          </p>
+          {onResetFilters && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#16351F] border border-[#8CFF8C]/40 text-xs font-mono text-[#8CFF8C] hover:bg-[#1f4a2b] transition-colors cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         className={clsx(
@@ -109,7 +147,7 @@ export const FindingList: React.FC<FindingListProps> = ({
           No Security Findings Discovered
         </h3>
         <p className="text-xs text-[#A5AAA6] mt-1.5 max-w-sm mx-auto font-sans leading-relaxed">
-          No vulnerabilities or code defects were detected for the current scan filter.
+          No vulnerabilities or code defects were detected in this codebase scan.
         </p>
       </div>
     );

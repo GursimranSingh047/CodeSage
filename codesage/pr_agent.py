@@ -78,21 +78,29 @@ def get_repo(token: str, full_name: str):
 # Naming, titles, diff and PR body (architecture.md 2.8 template)
 # ---------------------------------------------------------------------------
 
-def branch_name_for(patch: Patch) -> str:
+def branch_name_for(patch: Patch, display_id: Optional[str] = None) -> str:
+    if display_id and str(display_id).strip():
+        clean_id = re.sub(r"[^a-zA-Z0-9_-]+", "", str(display_id).strip())
+        return f"codesage/fix/{clean_id}"
     file_path = target_file_from_finding_id(patch.finding_id)
     slug = re.sub(r"[^a-z0-9]+", "-", Path(file_path).name.lower()).strip("-")
     digest = hashlib.sha1(patch.finding_id.encode()).hexdigest()[:8]
     return f"{BRANCH_PREFIX}{slug}-{digest}"
 
 
-def title_for(patch: Patch, triage) -> str:
+def title_for(patch: Patch, triage, vuln_title: Optional[str] = None) -> str:
+    if vuln_title and str(vuln_title).strip() and "unclassified" not in str(vuln_title).lower():
+        clean_title = re.sub(r"^fix\(security\):\s*", "", str(vuln_title).strip(), flags=re.I)
+        return f"fix(security): remediate {clean_title.lower()}"
     file_path = target_file_from_finding_id(patch.finding_id)
-    return f"Fix {triage.cwe_confirmed} in {file_path} (CodeSage)"
+    cwe = getattr(triage, "cwe_confirmed", None) or "vulnerability"
+    return f"Fix {cwe} in {file_path} (CodeSage)"
 
 
-def commit_message_for(patch: Patch, triage) -> str:
+def commit_message_for(patch: Patch, triage, vuln_title: Optional[str] = None) -> str:
     file_path = target_file_from_finding_id(patch.finding_id)
-    return f"CodeSage: fix {triage.cwe_confirmed} in {file_path}\n\n{patch.explanation}"
+    title = vuln_title or getattr(triage, "cwe_confirmed", "security finding")
+    return f"CodeSage: fix {title} in {file_path}\n\n{patch.explanation}"
 
 
 def render_diff(patch: Patch) -> str:
@@ -107,45 +115,76 @@ def render_diff(patch: Patch) -> str:
     return "\n".join(diff)
 
 
+def _test_result_line(verification: Optional[VerificationResult]) -> str:
+    if verification is None:
+        return "Not available"
+    if not getattr(verification, "tests_available", True) or getattr(verification, "tests_status", None) == "not_available":
+        return "Not available in repository"
+    if verification.tests_passed:
+        return "Passed (test suite green)"
+    return f"Failed ({verification.failure_reason or 'test failures'})"
+
+
 def _verification_line(verification: Optional[VerificationResult]) -> str:
     if verification is None:
-        return "not verified"
+        return "Not verified"
     if verification.passed:
+        if not getattr(verification, "tests_available", True) or getattr(verification, "tests_status", None) == "not_available":
+            return "PASSED (scanner re-run clean; tests not available in repository)"
         return "PASSED (scanner re-run clean, test suite green)"
     parts = []
     if not verification.scan_clean:
         parts.append("scanner still flags the rule")
     if not verification.tests_passed:
-        parts.append("test suite failed")
+        if not getattr(verification, "tests_available", True) or getattr(verification, "tests_status", None) == "not_available":
+            parts.append("tests: not available in repository")
+        else:
+            parts.append("test suite failed")
     reason = f" — {verification.failure_reason}" if verification.failure_reason else ""
     return "FAILED (" + "; ".join(parts) + f"){reason}"
 
 
-def generate_pr_body(patch: Patch, triage, verification: Optional[VerificationResult]) -> str:
-    """PR description with the architecture.md 2.8 fields: CWE, diff, confidence,
-    verification status."""
+def generate_pr_body(
+    patch: Patch,
+    triage,
+    verification: Optional[VerificationResult],
+    vuln_title: Optional[str] = None,
+    severity: Optional[str] = None,
+    finding_display_id: Optional[str] = None,
+) -> str:
+    """PR description with architecture & security report fields."""
     file_path = target_file_from_finding_id(patch.finding_id)
     try:
         line = patch.finding_id.split(":")[-2]
     except IndexError:  # pragma: no cover
         line = "?"
     diff = render_diff(patch)
-    confidence_pct = f"{triage.confidence:.0%}"
+    confidence_pct = f"{getattr(triage, 'confidence', 0.9):.0%}"
+    cwe = getattr(triage, "cwe_confirmed", None) or "CWE-Security"
+    fid_display = finding_display_id or patch.finding_id
+    sev_display = (severity or "MEDIUM").upper()
+    title_display = vuln_title or cwe
+    test_result_display = _test_result_line(verification)
+    verification_display = _verification_line(verification)
+
     return f"""## CodeSage: automated security fix
 
 | Field | Value |
 |---|---|
-| Finding | `{patch.finding_id}` |
-| CWE | **{triage.cwe_confirmed}** |
+| Finding | `{fid_display}` |
+| Title | **{title_display}** |
+| Severity | **{sev_display}** |
+| CWE | **{cwe}** |
 | Location | `{file_path}:{line}` |
 | Triage confidence | {confidence_pct} |
-| Verification | {_verification_line(verification)} |
+| Verification | {verification_display} |
+| Tests | {test_result_display} |
 
-### What changed
+### Vulnerability Explanation
+{getattr(triage, 'reasoning', 'Identified security flaw requiring remediation.')}
+
+### Fix Summary
 {patch.explanation}
-
-### Triage reasoning
-{triage.reasoning}
 
 ### Diff
 ```diff
@@ -168,6 +207,9 @@ def create_pull_request(
     verification: Optional[VerificationResult],
     base_branch: Optional[str] = None,
     head_branch: Optional[str] = None,
+    vuln_title: Optional[str] = None,
+    severity: Optional[str] = None,
+    display_id: Optional[str] = None,
 ) -> dict:
     """Branch, commit and open a PR for one verified patch.
 
@@ -188,24 +230,37 @@ def create_pull_request(
         )
     new_content = remote_content.replace(patch.original_code, patch.patched_code, 1)
 
-    branch = head_branch or branch_name_for(patch)
+    branch = head_branch or branch_name_for(patch, display_id=display_id)
     _api(
         lambda: repo.create_git_ref(ref=f"refs/heads/{branch}", sha=base_sha),
         f"creating branch {branch!r}",
     )
+    commit_sha = None
     try:
-        _api(
+        commit_res = _api(
             lambda: repo.update_file(
                 contents.path,
-                commit_message_for(patch, triage),
+                commit_message_for(patch, triage, vuln_title=vuln_title),
                 new_content,
                 contents.sha,
                 branch=branch,
             ),
             f"committing fix to {branch!r}",
         )
-        title = title_for(patch, triage)
-        body = generate_pr_body(patch, triage, verification)
+        if isinstance(commit_res, dict) and commit_res.get("commit"):
+            commit_sha = commit_res["commit"].sha if hasattr(commit_res["commit"], "sha") else str(commit_res["commit"])
+        elif hasattr(commit_res, "commit"):
+            commit_sha = getattr(commit_res.commit, "sha", None)
+
+        title = title_for(patch, triage, vuln_title=vuln_title)
+        body = generate_pr_body(
+            patch,
+            triage,
+            verification,
+            vuln_title=vuln_title,
+            severity=severity,
+            finding_display_id=display_id,
+        )
         pr = _api(
             lambda: repo.create_pull(
                 title=title,
@@ -225,7 +280,8 @@ def create_pull_request(
         "pr_number": pr.number,
         "branch": branch,
         "base_branch": base,
-        "title": title_for(patch, triage),
+        "commit_sha": commit_sha,
+        "title": title,
     }
 
 

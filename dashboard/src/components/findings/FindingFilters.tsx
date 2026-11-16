@@ -43,8 +43,8 @@ export const FindingFilters: React.FC<FindingFiltersProps> = ({
   onScannerChange,
   selectedStatus,
   onStatusChange,
-  severityCounts = { critical: 2, high: 7, medium: 11, low: 4 },
-  statusCounts = { open: 12, fixAvailable: 5, verified: 4, prCreated: 3, resolved: 0, falsePositive: 0 },
+  severityCounts = { critical: 0, high: 0, medium: 0, low: 0 },
+  statusCounts = { open: 0, fixAvailable: 0, verified: 0, prCreated: 0, resolved: 0, falsePositive: 0 },
   className,
 }) => {
   const severityPills = [

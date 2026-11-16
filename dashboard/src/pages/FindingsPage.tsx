@@ -6,12 +6,63 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { FindingFilters } from "@/components/findings/FindingFilters";
-import { FindingList, getFindingId } from "@/components/findings/FindingList";
+import { FindingList, getFindingId, getFindingTitle } from "@/components/findings/FindingList";
 import { FindingDetailWorkspace } from "@/components/findings/FindingDetailWorkspace";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/api/client";
 import { Finding, FindingArtifacts, ScanHistoryItem } from "@/types";
 import { staggerContainer, cardEntrance } from "@/animations/variants";
+
+export type NormalizedStatus =
+  | "open"
+  | "fix_available"
+  | "verified"
+  | "pr_created"
+  | "resolved"
+  | "false_positive";
+
+export function getNormalizedFindingStatus(f: Finding): NormalizedStatus {
+  if (!f) return "open";
+  const raw = (f.status || "").toLowerCase().trim();
+
+  // 1. False Positive
+  if (raw === "false_positive") {
+    return "false_positive";
+  }
+
+  // 2. Resolved / Merged
+  if (raw === "resolved" || raw === "merged") {
+    return "resolved";
+  }
+
+  // 3. PR Created (associated PR URL or PR number or verified_pr_opened)
+  if (Boolean(f.pr_url) || (typeof f.pr_number === "number" && f.pr_number > 0) || raw === "verified_pr_opened") {
+    return "pr_created";
+  }
+
+  // 4. Verified (passed verification, scan clean + tests passed)
+  if (raw === "verified_pr_skipped" || raw === "verified") {
+    return "verified";
+  }
+
+  // 5. Fix Available (valid patch generated, not verified or PR'd)
+  if (raw === "patch_generated" || raw === "fix_available") {
+    return "fix_available";
+  }
+
+  // 6. Open (default: discovered, triaged_real, needs_human_review, triage_failed, patch_generation_failed, verification_failed, etc.)
+  return "open";
+}
+
+export type NormalizedSeverity = "critical" | "high" | "medium" | "low";
+
+export function getNormalizedSeverity(sev?: string): NormalizedSeverity {
+  const s = (sev || "").toLowerCase().trim();
+  if (s === "critical") return "critical";
+  if (s === "high") return "high";
+  if (s === "low") return "low";
+  return "medium";
+}
 
 interface FindingsPageProps {
   initialScanId?: string | null;
@@ -175,13 +226,8 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({
   const severityCounts = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const f of findings) {
-      const sev = (f.severity || "").toLowerCase();
-      if (sev in counts) {
-        counts[sev as keyof typeof counts]++;
-      }
-    }
-    if (findings.length === 0) {
-      return { critical: 2, high: 7, medium: 11, low: 4 };
+      const sev = getNormalizedSeverity(f.severity);
+      counts[sev]++;
     }
     return counts;
   }, [findings]);
@@ -196,61 +242,79 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({
       falsePositive: 0,
     };
     for (const f of findings) {
-      if (f.status === "resolved") counts.resolved++;
-      else if (f.status === "verified_pr_opened") counts.prCreated++;
-      else if (f.status === "verified_pr_skipped") counts.verified++;
-      else if (f.status === "triaged_real" || f.status === "patch_generated") counts.fixAvailable++;
-      else if (f.status === "false_positive") counts.falsePositive++;
-      else counts.open++;
-    }
-    if (findings.length === 0) {
-      return { open: 12, fixAvailable: 5, verified: 4, prCreated: 3, resolved: 0, falsePositive: 0 };
+      const status = getNormalizedFindingStatus(f);
+      switch (status) {
+        case "open":
+          counts.open++;
+          break;
+        case "fix_available":
+          counts.fixAvailable++;
+          break;
+        case "verified":
+          counts.verified++;
+          break;
+        case "pr_created":
+          counts.prCreated++;
+          break;
+        case "resolved":
+          counts.resolved++;
+          break;
+        case "false_positive":
+          counts.falsePositive++;
+          break;
+      }
     }
     return counts;
   }, [findings]);
 
   const filteredFindings = useMemo(() => {
     return findings.filter((f) => {
+      // 1. Severity filter
+      if (selectedSeverity !== "all") {
+        if (getNormalizedSeverity(f.severity) !== selectedSeverity.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
+      // 2. Status filter
+      if (selectedStatus !== "all") {
+        if (getNormalizedFindingStatus(f) !== selectedStatus.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
+      // 3. Scanner filter
+      if (selectedScanner !== "all") {
+        const sc = (f.tool_source || "").toLowerCase().trim();
+        if (sc !== selectedScanner.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
+      // 4. File filter
+      if (selectedFile !== "all") {
+        if ((f.file_path || "").trim() !== selectedFile.trim()) {
+          return false;
+        }
+      }
+
+      // 5. Search query filter
       if (search.trim()) {
-        const q = search.toLowerCase();
+        const q = search.toLowerCase().trim();
         const matchesCwe = (f.cwe_id || "").toLowerCase().includes(q);
         const matchesMsg = (f.raw_message || "").toLowerCase().includes(q);
         const matchesFile = (f.file_path || "").toLowerCase().includes(q);
         const matchesId = getFindingId(f).toLowerCase().includes(q);
-        if (!matchesCwe && !matchesMsg && !matchesFile && !matchesId) {
+        const matchesDisplayId = (f.display_id || "").toLowerCase().includes(q);
+        const matchesTitle = getFindingTitle(f).toLowerCase().includes(q);
+        if (!matchesCwe && !matchesMsg && !matchesFile && !matchesId && !matchesDisplayId && !matchesTitle) {
           return false;
         }
-      }
-
-      if (selectedSeverity !== "all") {
-        if ((f.severity || "").toLowerCase() !== selectedSeverity.toLowerCase()) {
-          return false;
-        }
-      }
-
-      if (selectedScanner !== "all") {
-        const sc = (f.tool_source || "").toLowerCase();
-        if (sc !== selectedScanner.toLowerCase()) {
-          return false;
-        }
-      }
-
-      if (selectedStatus !== "all") {
-        if (selectedStatus === "open" && f.status !== "discovered") return false;
-        if (selectedStatus === "fix_available" && f.status !== "triaged_real" && f.status !== "patch_generated") return false;
-        if (selectedStatus === "false_positive" && f.status !== "false_positive") return false;
-        if (selectedStatus === "verified" && f.status !== "verified_pr_skipped") return false;
-        if (selectedStatus === "pr_created" && f.status !== "verified_pr_opened") return false;
-        if (selectedStatus === "resolved" && f.status !== "resolved") return false;
-      }
-
-      if (selectedFile !== "all") {
-        if (f.file_path !== selectedFile) return false;
       }
 
       return true;
     });
-  }, [findings, search, selectedSeverity, selectedScanner, selectedStatus, selectedFile]);
+  }, [findings, selectedSeverity, selectedStatus, selectedScanner, selectedFile, search]);
 
   const handleResetFilters = () => {
     setSearch("");
@@ -311,6 +375,13 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({
   };
 
   const currentScan = scans.find((s) => s.scan_id === selectedScanId);
+
+  const isFiltered =
+    selectedSeverity !== "all" ||
+    selectedStatus !== "all" ||
+    selectedScanner !== "all" ||
+    selectedFile !== "all" ||
+    search.trim().length > 0;
 
   // IF A FINDING IS ACTIVELY SELECTED: RENDER DEDICATED FULL-SCREEN WORKSPACE
   if (selectedFinding) {
@@ -451,6 +522,9 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({
         <motion.div variants={cardEntrance}>
           <FindingList
             findings={filteredFindings}
+            totalCount={findings.length}
+            isFiltered={isFiltered}
+            onResetFilters={handleResetFilters}
             selectedFindingId={selectedFinding ? getFindingId(selectedFinding) : null}
             onSelectFinding={setSelectedFinding}
           />

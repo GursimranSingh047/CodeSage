@@ -91,9 +91,16 @@ def test_token_absent_from_subprocess_command_arguments():
         # Token must be safely injected into the isolated subprocess environment with URL scoping
         assert env.get("GIT_CONFIG_COUNT") == "2"
         assert env.get("GIT_CONFIG_KEY_0") == "http.https://github.com/.extraHeader"
-        assert dummy_token in env.get("GIT_CONFIG_VALUE_0", "")
+        import base64
+        val0 = env.get("GIT_CONFIG_VALUE_0", "")
+        if "Basic " in val0:
+            val0 = base64.b64decode(val0.split("Basic ")[-1]).decode("utf-8", errors="ignore")
+        assert dummy_token in val0
         assert env.get("GIT_CONFIG_KEY_1") == "http.https://www.github.com/.extraHeader"
-        assert dummy_token in env.get("GIT_CONFIG_VALUE_1", "")
+        val1 = env.get("GIT_CONFIG_VALUE_1", "")
+        if "Basic " in val1:
+            val1 = base64.b64decode(val1.split("Basic ")[-1]).decode("utf-8", errors="ignore")
+        assert dummy_token in val1
         assert env.get("GIT_TERMINAL_PROMPT") == "0"
 
 

@@ -90,6 +90,8 @@ export interface VerificationResult {
   tests_passed: boolean;
   failure_reason: string | null;
   diff_verified: boolean;
+  tests_available?: boolean;
+  tests_status?: string;
 }
 
 export interface ScanRunSummary {

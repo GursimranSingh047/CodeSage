@@ -73,3 +73,5 @@ class VerificationResult(BaseModel):
     tests_passed: bool
     passed: bool  # overall pass/fail
     failure_reason: Optional[str] = None
+    tests_available: bool = True
+    tests_status: Optional[str] = None  # passed | failed | not_available

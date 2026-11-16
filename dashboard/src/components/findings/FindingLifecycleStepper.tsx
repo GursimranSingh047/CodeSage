@@ -55,8 +55,8 @@ export const FindingLifecycleStepper: React.FC<FindingLifecycleStepperProps> = (
   };
 
   const isStageActive = (idx: number): boolean => {
-    if (isMerged) return idx === 4;
-    if (isPrOpened) return idx === 4; // PR created, awaiting user merge on GitHub
+    if (isMerged) return false;
+    if (isPrOpened) return false; // PR created, completed stage 3
     if (isVerified) return idx === 3; // Verified, awaiting user clicking Create PR
     if (isFixGenerated) return idx === 2; // Fix generated, verifying
     return idx === 1; // Detected, generating fix

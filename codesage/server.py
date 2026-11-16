@@ -101,6 +101,13 @@ class ScanRun:
         self.repo_url = repo_url
         self.branch = branch
         self.github_repo = github_repo
+        if not self.github_repo and self.repo_url:
+            try:
+                from codesage.ingestion import validate_github_url
+                val = validate_github_url(self.repo_url)
+                self.github_repo = val.get("full_name")
+            except Exception:
+                pass
         self.status = "running"
         self.started = time.time()
         self.finished: Optional[float] = None
@@ -1008,6 +1015,99 @@ def create_app(
             "review_notes": req.notes,
         }
 
+    @app.get("/health/github")
+    def github_health_check(
+        repository: Optional[str] = Query(None, description="Repository name to check access against (e.g. owner/repo)"),
+        scan_id: Optional[str] = Query(None, description="Scan ID to derive repository from"),
+    ):
+        """Safe backend diagnostic check that verifies whether GITHUB_TOKEN can access GitHub and repository.
+        Never returns or logs the secret token.
+        """
+        import os
+        from dotenv import load_dotenv
+
+        token = os.environ.get("GITHUB_TOKEN", "").strip()
+        if not token:
+            root_env = Path(__file__).resolve().parent.parent / ".env"
+            if root_env.is_file():
+                load_dotenv(root_env, override=True)
+                token = os.environ.get("GITHUB_TOKEN", "").strip()
+
+        if not token:
+            return {
+                "status": "error",
+                "github_authentication": "FAILED (GITHUB_TOKEN missing)",
+                "repository_access": "FAILED",
+                "contents_write_permission": "FAILED",
+                "pull_request_permission": "FAILED",
+                "detail": "GITHUB_TOKEN is not configured in the server environment (.env).",
+            }
+
+        try:
+            from github import Auth, Github
+            from codesage.pr_agent import _explain_github_exception
+        except ImportError:
+            return {
+                "status": "error",
+                "github_authentication": "FAILED",
+                "detail": "PyGithub is not installed in the environment.",
+            }
+
+        try:
+            client = Github(auth=Auth.Token(token))
+            user = client.get_user()
+            user_login = user.login
+        except Exception as exc:
+            return {
+                "status": "error",
+                "github_authentication": "FAILED",
+                "repository_access": "FAILED",
+                "contents_write_permission": "FAILED",
+                "pull_request_permission": "FAILED",
+                "detail": f"Authentication failed: {_explain_github_exception(exc)}",
+            }
+
+        # Resolve target repository
+        target_repo_name = repository
+        if not target_repo_name and scan_id:
+            try:
+                run = _get_run(scan_id)
+                target_repo_name = run.github_repo
+                if not target_repo_name and run.repo_url:
+                    val = validate_github_url(run.repo_url)
+                    target_repo_name = val.get("full_name")
+            except Exception:
+                pass
+        if not target_repo_name:
+            target_repo_name = os.environ.get("GITHUB_REPOSITORY") or "GursimranSingh047/AI-stack-auditor"
+
+        try:
+            repo = client.get_repo(target_repo_name)
+            perms = getattr(repo, "permissions", None)
+            has_push = bool(perms and perms.push)
+            has_pull = bool(perms and perms.pull)
+            return {
+                "status": "ok",
+                "github_authentication": "OK",
+                "repository_access": "OK",
+                "contents_write_permission": "OK" if has_push else "NO_WRITE_PERMISSION",
+                "pull_request_permission": "OK" if (has_push or has_pull) else "NO_PR_PERMISSION",
+                "authenticated_user": user_login,
+                "target_repository": repo.full_name,
+                "default_branch": repo.default_branch,
+            }
+        except Exception as exc:
+            return {
+                "status": "warning",
+                "github_authentication": "OK",
+                "repository_access": "FAILED",
+                "contents_write_permission": "FAILED",
+                "pull_request_permission": "FAILED",
+                "authenticated_user": user_login,
+                "target_repository": target_repo_name,
+                "detail": f"Repository check failed: {_explain_github_exception(exc)}",
+            }
+
     @app.post("/scan/{scan_id}/findings/{finding_id:path}/create-pr")
     def create_pr_for_finding(
         scan_id: str,
@@ -1023,15 +1123,41 @@ def create_app(
 
         canonical_fid = target.get("finding_id") or target.get("id") or finding_id
 
+        # Resolve authoritative scanned repository
+        scanned_repo = run.github_repo
+        if not scanned_repo and run.repository_metadata:
+            scanned_repo = run.repository_metadata.get("full_name")
+        if not scanned_repo and run.repo_url:
+            try:
+                val = validate_github_url(run.repo_url)
+                scanned_repo = val.get("full_name")
+            except Exception:
+                pass
+
+        if github_repo and scanned_repo:
+            if github_repo.strip().lower() != scanned_repo.strip().lower():
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Repository mismatch: requested PR repository '{github_repo}' differs from scanned repository '{scanned_repo}'.",
+                )
+
+        gh_repo = scanned_repo or github_repo
+        if not gh_repo:
+            raise HTTPException(
+                status_code=400,
+                detail="Target repository is not a valid GitHub repository (e.g. owner/repo).",
+            )
+
         # 1. Duplicate PR protection: return existing PR info if already created
         if target.get("pr_url"):
             return {
                 "success": True,
+                "finding_id": canonical_fid,
                 "pr_number": target.get("pr_number"),
                 "pr_url": target.get("pr_url"),
+                "repository": gh_repo,
                 "branch": target.get("branch"),
                 "base_branch": target.get("base_branch"),
-                "finding_id": canonical_fid,
                 "status": "pr_created",
                 "title": target.get("title", f"Fix for {canonical_fid}"),
             }
@@ -1047,11 +1173,12 @@ def create_app(
             storage.save_run(run.to_dict())
             return {
                 "success": True,
+                "finding_id": canonical_fid,
                 "pr_number": pr_info.get("pr_number"),
                 "pr_url": pr_info["pr_url"],
+                "repository": gh_repo,
                 "branch": pr_info.get("branch"),
                 "base_branch": pr_info.get("base_branch"),
-                "finding_id": canonical_fid,
                 "status": "pr_created",
                 "title": pr_info.get("title", f"Fix for {canonical_fid}"),
             }
@@ -1073,41 +1200,63 @@ def create_app(
             )
 
         verif_data = artifacts.get("verification")
-        if not verif_data or not verif_data.get("passed", False):
+        if verif_data:
+            # Handle repositories with no test suite: do not automatically block PR creation
+            is_no_tests = (
+                not verif_data.get("tests_available", True)
+                or verif_data.get("tests_status") == "not_available"
+                or verif_data.get("failure_reason") == "no test suite found in repository (verification inconclusive)"
+            )
+            if is_no_tests and verif_data.get("scan_clean", False):
+                verif_data["tests_available"] = False
+                verif_data["tests_status"] = "not_available"
+                verif_data["passed"] = True
+                verif_data["failure_reason"] = None
+            elif not verif_data.get("passed", False):
+                if target.get("status") not in ("verified_pr_skipped", "verified_pr_opened"):
+                    failure_msg = verif_data.get("failure_reason") if verif_data else "Verification has not passed"
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Cannot create PR: {failure_msg}",
+                    )
+        else:
             if target.get("status") not in ("verified_pr_skipped", "verified_pr_opened"):
-                failure_msg = verif_data.get("failure_reason") if verif_data else "Verification has not passed"
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Cannot create PR: {failure_msg}",
-                )
+                if run.repo_path and Path(run.repo_path).is_dir():
+                    try:
+                        from codesage.verification import Verifier
+                        from codesage.schemas import Finding, Patch
+                        v = Verifier(Path(run.repo_path))
+                        v_res = v.verify(Finding(**target), Patch(**patch_data))
+                        verif_data = v_res.model_dump()
+                        artifacts["verification"] = verif_data
+                        run.artifacts.setdefault(canonical_fid, {})["verification"] = verif_data
+                        if not v_res.passed:
+                            raise HTTPException(status_code=400, detail=f"Cannot create PR: {v_res.failure_reason}")
+                    except HTTPException:
+                        raise
+                    except Exception as exc:
+                        raise HTTPException(status_code=400, detail=f"Cannot create PR: verification failed: {exc}")
+                else:
+                    raise HTTPException(status_code=400, detail="Cannot create PR: finding has not passed verification.")
 
         triage_data = artifacts.get("triage")
 
-        # 3. Resolve GitHub repository full name (owner/repo)
-        gh_repo = github_repo or run.github_repo
-        if not gh_repo and run.repository_metadata:
-            gh_repo = run.repository_metadata.get("full_name")
-        if not gh_repo and run.repo_url:
-            try:
-                val = validate_github_url(run.repo_url)
-                gh_repo = val.get("full_name")
-            except Exception:
-                pass
-        if not gh_repo:
-            raise HTTPException(
-                status_code=400,
-                detail="Target repository is not a valid GitHub repository (e.g. owner/repo).",
-            )
-
-        # 4. Resolve GitHub authentication token securely from env
+        # 3. Resolve GitHub authentication token securely from env
         token = os.environ.get("GITHUB_TOKEN", "").strip()
+        if not token:
+            from dotenv import load_dotenv
+            root_env = Path(__file__).resolve().parent.parent / ".env"
+            if root_env.is_file():
+                load_dotenv(root_env, override=True)
+                token = os.environ.get("GITHUB_TOKEN", "").strip()
+
         if not token:
             raise HTTPException(
                 status_code=400,
-                detail="GITHUB_TOKEN is not configured in the server environment. Please configure GITHUB_TOKEN.",
+                detail="GITHUB_TOKEN is not configured in the server environment. Please configure GITHUB_TOKEN in .env.",
             )
 
-        # 5. Instantiate schemas and invoke PyGithub PR agent
+        # 4. Instantiate schemas and invoke PyGithub PR agent
         from codesage.pr_agent import PRError, _api, branch_name_for, create_pull_request, get_repo
         from codesage.schemas import Patch, TriageResult, VerificationResult
 
@@ -1131,16 +1280,25 @@ def create_app(
                 else VerificationResult(
                     finding_id=canonical_fid,
                     scan_clean=True,
-                    tests_passed=True,
+                    tests_passed=False,
+                    tests_available=False,
+                    tests_status="not_available",
                     passed=True,
                 )
             )
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Invalid finding artifacts schema: {exc}") from exc
 
+        display_id = target.get("display_id")
+        expected_branch = branch_name_for(patch, display_id=display_id)
+
         try:
             repo = get_repo(token, gh_repo)
-            expected_branch = branch_name_for(patch)
+
+            logger.info(
+                "PR Creation: scan_id=%s finding_id=%s repository=%s branch=%s base_branch=%s",
+                scan_id, canonical_fid, gh_repo, expected_branch, run.branch or repo.default_branch,
+            )
 
             # Check if an open PR already exists on GitHub for this head branch
             try:
@@ -1159,10 +1317,15 @@ def create_app(
                 target["base_branch"] = existing_pr.base.ref
                 target["status"] = "verified_pr_opened"
                 pr_record = {
-                    "pr_url": existing_pr.html_url,
-                    "pr_number": existing_pr.number,
+                    "scan_id": run.id,
+                    "finding_id": canonical_fid,
+                    "repository": gh_repo,
                     "branch": expected_branch,
                     "base_branch": existing_pr.base.ref,
+                    "pr_number": existing_pr.number,
+                    "pr_url": existing_pr.html_url,
+                    "created_at": existing_pr.created_at.timestamp() if existing_pr.created_at else time.time(),
+                    "status": "pr_created",
                     "title": existing_pr.title,
                 }
                 run.artifacts.setdefault(canonical_fid, {})["pr"] = pr_record
@@ -1171,11 +1334,12 @@ def create_app(
                 storage.save_run(run.to_dict())
                 return {
                     "success": True,
+                    "finding_id": canonical_fid,
                     "pr_number": existing_pr.number,
                     "pr_url": existing_pr.html_url,
+                    "repository": gh_repo,
                     "branch": expected_branch,
                     "base_branch": existing_pr.base.ref,
-                    "finding_id": canonical_fid,
                     "status": "pr_created",
                     "title": existing_pr.title,
                 }
@@ -1190,16 +1354,41 @@ def create_app(
                 pass
 
             base = run.branch or repo.default_branch
-            info = create_pull_request(repo, patch, triage, verif, base_branch=base)
+            info = create_pull_request(
+                repo,
+                patch,
+                triage,
+                verif,
+                base_branch=base,
+                head_branch=expected_branch,
+                vuln_title=target.get("title") or target.get("cwe_id"),
+                severity=target.get("severity"),
+                display_id=display_id,
+            )
+
+            pr_record = {
+                "scan_id": run.id,
+                "finding_id": canonical_fid,
+                "repository": gh_repo,
+                "branch": info["branch"],
+                "base_branch": info["base_branch"],
+                "commit_sha": info.get("commit_sha"),
+                "pr_number": info["pr_number"],
+                "pr_url": info["pr_url"],
+                "created_at": time.time(),
+                "status": "pr_created",
+                "title": info.get("title", f"Fix for {canonical_fid}"),
+            }
 
             target["pr_url"] = info["pr_url"]
             target["pr_number"] = info["pr_number"]
             target["branch"] = info["branch"]
             target["base_branch"] = info["base_branch"]
+            target["commit_sha"] = info.get("commit_sha")
             target["status"] = "verified_pr_opened"
-            run.artifacts.setdefault(canonical_fid, {})["pr"] = info
+            run.artifacts.setdefault(canonical_fid, {})["pr"] = pr_record
             if finding_id != canonical_fid:
-                run.artifacts.setdefault(finding_id, {})["pr"] = info
+                run.artifacts.setdefault(finding_id, {})["pr"] = pr_record
 
             run.emit({
                 "type": "finding_done",
@@ -1214,11 +1403,12 @@ def create_app(
 
             return {
                 "success": True,
+                "finding_id": canonical_fid,
                 "pr_number": info["pr_number"],
                 "pr_url": info["pr_url"],
+                "repository": gh_repo,
                 "branch": info["branch"],
                 "base_branch": info["base_branch"],
-                "finding_id": canonical_fid,
                 "status": "pr_created",
                 "title": info.get("title", f"Fix for {canonical_fid}"),
             }
@@ -1226,6 +1416,8 @@ def create_app(
             logger.error("Failed to create GitHub PR for %s: %s", finding_id, exc)
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:
+            logger.exception("Unexpected error creating GitHub PR for %s", finding_id)
+            raise HTTPException(status_code=500, detail=f"Failed to create GitHub PR: {exc}") from exc
             logger.exception("Unexpected error creating GitHub PR for %s", finding_id)
             raise HTTPException(status_code=500, detail=f"Failed to create GitHub PR: {exc}") from exc
 
