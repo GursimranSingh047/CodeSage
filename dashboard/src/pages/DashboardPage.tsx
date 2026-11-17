@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Play, Github, RefreshCw } from "lucide-react";
 import { ComputationalField } from "@/components/canvas/ComputationalField";
 import { FloatingCodeCard } from "@/components/canvas/FloatingCodeCard";
@@ -22,6 +22,12 @@ interface DashboardPageProps {
   isScanning?: boolean;
 }
 
+const ROTATING_PHRASES = [
+  "IT'S REVIEWING IT.",
+  "IT'S SECURING IT.",
+  "IT'S PRIORITIZING IT.",
+];
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   onStartScan,
   onSelectScan,
@@ -33,7 +39,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phraseIndex, setPhraseIndex] = useState(0);
   const newScanCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [stats, setStats] = useState<AggregateStats>({
     totalScans: 0,
@@ -141,7 +155,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-extrabold text-[#F4F5F4] tracking-tight leading-[1.1]">
                 THE FUTURE ISN&apos;T <br />
                 WRITING CODE. <br />
-                <span className="text-[#8CFF8C]">IT&apos;S REVIEWING IT.</span>
+                <span className="text-[#8CFF8C] grid grid-cols-1 grid-rows-1 relative overflow-hidden h-[1.15em] leading-[1.15em]">
+                  <AnimatePresence initial={false}>
+                    <motion.span
+                      key={phraseIndex}
+                      initial={{ y: "100%", opacity: 0 }}
+                      animate={{ y: "0%", opacity: 1 }}
+                      exit={{ y: "-100%", opacity: 0 }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      className="col-start-1 row-start-1 block whitespace-nowrap"
+                    >
+                      {ROTATING_PHRASES[phraseIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
               </h1>
               <p className="text-sm sm:text-base text-[#A5AAA6] font-sans max-w-lg leading-relaxed pt-1">
                 Sage AI autonomously secures every change. Real-time taint tracking,
