@@ -20,12 +20,14 @@ CodeSage addresses all three: cheap open-source scanning, LLM-based triage to cu
 ## Architecture Overview
 
 ```
-Repo URL → Ingestion → Scanning (Semgrep/Bandit/Gitleaks) → Context Extraction (tree-sitter)
-  → Triage Agent (LLM) → Patch Generation (LLM) → Verification (Docker sandbox + re-scan + tests)
+Repo URL → Ingestion → Scanning (Semgrep/Bandit/Gitleaks) 
+  → PyTorch ML Classifier & Risk Scorer (codesage.ml)
+  → Context Extraction (tree-sitter) → Triage Agent (LLM) 
+  → Patch Generation (LLM) → Verification (Docker sandbox + re-scan + tests)
   → GitHub PR Agent → Dashboard (React)
 ```
 
-Full details in [`architecture.md`](./architecture.md) and [`design.md`](./design.md).
+Full details in [`architecture.md`](./architecture.md), [`docs/ML_CLASSIFICATION.md`](./docs/ML_CLASSIFICATION.md), and [`design.md`](./design.md).
 
 ---
 
@@ -34,14 +36,15 @@ Full details in [`architecture.md`](./architecture.md) and [`design.md`](./desig
 | Layer | Tool |
 |---|---|
 | Agent orchestration | LangGraph |
-| LLM | Claude / GPT-4 API |
+| Vulnerability classification & risk scoring | PyTorch (CPU-optimized MLP) |
+| LLM | Claude / GPT-4 / OpenRouter API |
 | Static analysis | Semgrep, Bandit, Gitleaks |
 | Code parsing | tree-sitter |
 | Vector store | ChromaDB |
 | Sandboxing | Docker SDK for Python |
 | Version control automation | PyGithub |
 | Backend | FastAPI |
-| Frontend | React (JS, CSS, HTML) |
+| Frontend | React (TypeScript, Tailwind CSS, Vite) |
 | Database | PostgreSQL |
 
 ---

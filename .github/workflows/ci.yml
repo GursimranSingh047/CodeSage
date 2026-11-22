@@ -28,13 +28,14 @@ jobs:
 
       - name: Install test target dependencies
         run: |
-          cd test-target-repo
-          pip install -r requirements.txt
+          python -m venv test-target-repo/venv
+          test-target-repo/venv/bin/pip install --upgrade pip
+          test-target-repo/venv/bin/pip install -r test-target-repo/requirements.txt
 
       - name: Run Seeded Benchmark Tests (Module 1)
         run: |
           cd test-target-repo
-          pytest -v tests/
+          ./venv/bin/pytest -v tests/
 
       - name: Run Backend & Agent Unit and Integration Tests (Modules 2–11)
         run: |

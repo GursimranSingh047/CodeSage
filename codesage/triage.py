@@ -53,8 +53,20 @@ def build_triage_prompt(finding: Finding, context: CodeContext) -> Tuple[str, st
         f"Finding: {finding.tool_source} flagged {finding.cwe_id or 'unknown CWE'} "
         f"at {finding.file_path}:{finding.line_number}\n"
         f"Message: {finding.raw_message}\n"
-        f"Code context:\n<untrusted_code_context>\n{context.enclosing_function}\n</untrusted_code_context>"
     )
+    if getattr(finding, "ml_prediction", None) is not None:
+        ml = finding.ml_prediction
+        uncertain_flag = " (marked UNCERTAIN - low confidence)" if ml.uncertain else ""
+        user += (
+            f"Static Scanner Severity: {finding.severity}\n"
+            f"PyTorch ML Assessment:\n"
+            f"- Predicted Category: {ml.category}{uncertain_flag}\n"
+            f"- Confidence: {ml.confidence:.2f}\n"
+            f"- Prioritization Risk Score: {ml.risk_score:.2f}\n"
+            f"Note: Use the PyTorch ML prediction as assistive supporting context only. "
+            f"Do not blindly trust this prediction; perform independent code reasoning.\n"
+        )
+    user += f"Code context:\n<untrusted_code_context>\n{context.enclosing_function}\n</untrusted_code_context>"
     if context.related_chunks:
         chunks = "\n---\n".join(context.related_chunks)
         user += f"\n\nSimilar code elsewhere in this repo (for pattern awareness):\n<related_code>\n{chunks}\n</related_code>"

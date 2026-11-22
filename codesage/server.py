@@ -274,6 +274,9 @@ def _handle_delta(run: ScanRun, node: str, delta: dict) -> None:
             run.file_hashes = dict(delta["file_hashes"])
         stage("done", "scanning", detail={"count": len(delta.get("findings", []))})
         run.emit({"type": "findings_discovered", "count": len(delta.get("findings", []))})
+    elif node == "ml_classification":
+        if "findings" in delta:
+            run.findings = [_detail_of(f) for f in delta["findings"]]
     elif node == "next_finding":
         current = delta.get("current_finding")
         run.current_finding = current  # None once the queue drains

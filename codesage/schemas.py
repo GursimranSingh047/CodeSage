@@ -9,6 +9,16 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 
+class MLPrediction(BaseModel):
+    """ML-based vulnerability category prediction and risk scoring."""
+
+    category: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    risk_score: float = Field(ge=0.0, le=1.0)
+    uncertain: bool = False
+    details: Optional[dict] = None
+
+
 class Finding(BaseModel):
     """A normalized static-analysis result, independent of the source tool."""
 
@@ -20,6 +30,13 @@ class Finding(BaseModel):
     tool_source: str  # semgrep / bandit / gitleaks
     raw_message: str
     code_snippet: str
+    ml_prediction: Optional[MLPrediction] = None
+
+    def model_dump(self, *args, **kwargs):
+        res = super().model_dump(*args, **kwargs)
+        if self.ml_prediction is None and "ml_prediction" in res and "include" not in kwargs:
+            res.pop("ml_prediction", None)
+        return res
 
 
 class CodeContext(BaseModel):

@@ -2,7 +2,8 @@
 # Module 2: pydantic (Finding schema), bandit + semgrep (scanners).
 # Module 3: tree-sitter (AST context), chromadb (code-chunk retrieval).
 
-pydantic>=2.9,<3
+# pydantic <2.14 avoids removal of eval_type_backport in pydantic._internal._typing_extra which breaks semgrep's mcp dependency
+pydantic>=2.9,<2.14
 bandit>=1.7,<2
 semgrep>=1.80
 tree-sitter>=0.23,<0.25
@@ -35,3 +36,6 @@ python-dotenv>=1.0,<2
 
 # LLM Providers (OpenRouter, OpenAI)
 openai>=1.0,<3
+
+# ML-based Vulnerability Classification & Risk Scoring
+torch>=2.0,<3

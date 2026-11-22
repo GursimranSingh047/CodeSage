@@ -21,6 +21,7 @@ state needs somewhere to carry it.
 """
 
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -93,10 +94,18 @@ class PipelineConfig:
     previous_hashes: Optional[Dict[str, str]] = None
     previous_findings: Optional[List[Union[Finding, dict]]] = None
     storage: Optional[object] = None
+    pytorch_ml_enabled: Optional[bool] = None
+    pytorch_model_path: Optional[str] = None
+    classifier: Optional[Any] = None
 
     def __post_init__(self):
         if self.backend is None:
             self.backend = get_backend()
+        if self.pytorch_ml_enabled is None:
+            raw_env = os.environ.get("PYTORCH_ML_ENABLED", "true").strip().lower()
+            self.pytorch_ml_enabled = raw_env in ("1", "true", "yes", "on")
+        if self.pytorch_model_path is None:
+            self.pytorch_model_path = os.environ.get("PYTORCH_MODEL_PATH")
 
 
 class PipelineError(RuntimeError):
@@ -150,6 +159,13 @@ def _validate_incremental_data(
 
 
 def _completed_entry(finding: Finding, status: str, **extra) -> dict:
+    ml_pred = None
+    if getattr(finding, "ml_prediction", None) is not None:
+        if hasattr(finding.ml_prediction, "model_dump"):
+            ml_pred = finding.ml_prediction.model_dump()
+        elif isinstance(finding.ml_prediction, dict):
+            ml_pred = finding.ml_prediction
+
     entry = {
         "finding_id": finding.id,
         "id": finding.id,
@@ -160,6 +176,7 @@ def _completed_entry(finding: Finding, status: str, **extra) -> dict:
         "tool_source": finding.tool_source,
         "raw_message": finding.raw_message,
         "code_snippet": finding.code_snippet,
+        "ml_prediction": ml_pred,
         "status": status,
         "completed_at": round(time.time(), 3),
     }
@@ -339,6 +356,46 @@ def build_pipeline(config: PipelineConfig):
         logger.info("[node:scanning] exit findings=%d ids=%s", len(findings),
                     [f.id for f in findings][:6])
         return {"findings": findings, "current_finding": None, "file_hashes": file_hashes}
+
+    def ml_classification_node(state: PipelineState) -> dict:
+        if _check_cancelled():
+            raise PipelineCancelled("Scan cancelled before ML classification")
+        findings = list(state.get("findings", []))
+        if not findings or not config.pytorch_ml_enabled:
+            return {"findings": findings}
+
+        logger.info("[node:ml_classification] enter findings=%d", len(findings))
+        clf = config.classifier
+        if clf is None:
+            try:
+                from codesage.ml import VulnerabilityClassifier
+                clf = VulnerabilityClassifier(model_path=config.pytorch_model_path)
+            except Exception as exc:
+                logger.warning("[node:ml_classification] Failed to initialize classifier: %s", exc)
+                clf = None
+
+        if clf is not None:
+            for f in findings:
+                try:
+                    f.ml_prediction = clf.predict(f)
+                except Exception as exc:
+                    logger.warning("[node:ml_classification] Prediction failed for finding %s: %s", getattr(f, "id", "?"), exc)
+
+            def risk_tier(f: Finding) -> int:
+                if getattr(f, "ml_prediction", None) is not None:
+                    score = f.ml_prediction.risk_score
+                    if score >= 0.70:
+                        return 0
+                    elif score >= 0.40:
+                        return 1
+                    else:
+                        return 2
+                return 1
+
+            findings.sort(key=risk_tier)
+
+        logger.info("[node:ml_classification] exit findings=%d", len(findings))
+        return {"findings": findings}
 
     def next_finding_node(state: PipelineState) -> dict:
         if _check_cancelled():
@@ -541,7 +598,6 @@ def build_pipeline(config: PipelineConfig):
         logger.info("[edge:verify] passed=%r retry_count=%d max_retries=%d -> %s",
                     passed, retries, config.max_retries, decision)
         return decision
-        return decision
 
     # ------------------------------------------------------------------
     # Graph assembly
@@ -550,6 +606,7 @@ def build_pipeline(config: PipelineConfig):
     builder = StateGraph(PipelineState)
     builder.add_node("ingestion", ingestion_node)
     builder.add_node("scanning", scanning_node)
+    builder.add_node("ml_classification", ml_classification_node)
     builder.add_node("next_finding", next_finding_node)
     builder.add_node("context", context_node)
     builder.add_node("triage", triage_node)
@@ -560,7 +617,8 @@ def build_pipeline(config: PipelineConfig):
 
     builder.add_edge(START, "ingestion")
     builder.add_edge("ingestion", "scanning")
-    builder.add_edge("scanning", "next_finding")
+    builder.add_edge("scanning", "ml_classification")
+    builder.add_edge("ml_classification", "next_finding")
     builder.add_conditional_edges("next_finding", route_after_pop,
                                   {"context": "context", END: END})
     builder.add_edge("context", "triage")

@@ -79,8 +79,9 @@ class PipelineState(TypedDict):
 |---|---|
 | `ingestion_node` | Clone repo, detect language |
 | `scanning_node` | Run Semgrep/Bandit/Gitleaks, normalize findings |
+| `ml_classification_node` | PyTorch neural network classifying findings and ranking by risk score |
 | `context_node` | Extract AST-based function context via tree-sitter |
-| `triage_node` | LLM classifies real vs. false positive |
+| `triage_node` | LLM classifies real vs. false positive with assistive ML context |
 | `patch_node` | LLM generates code fix |
 | `verify_node` | Docker sandbox re-scan + test run |
 | `pr_node` | Opens GitHub PR |
@@ -93,6 +94,15 @@ class PipelineState(TypedDict):
 ### 2.4 Static Analysis Layer
 - Semgrep, Bandit, Gitleaks run as isolated subprocesses
 - Outputs normalized into a single `Finding` Pydantic schema regardless of source tool
+
+### 2.4b ML-Based Vulnerability Classification & Risk Scoring (PyTorch)
+- Lightweight CPU-optimized neural network (`VulnerabilityClassifierNet`)
+- Extracts 64-dimensional numerical feature representation (scanner, severity, CWE family, length metrics, keyword indicators, token hashing)
+- Predicts vulnerability category (SQL Injection, Command Injection, Path Traversal, Hardcoded Secret, Weak Cryptography, Insecure Deserialization, Other)
+- Computes deterministic composite risk prioritization score ($0.0$ to $1.0$)
+- Prioritizes findings so critical issues are processed first by LLM triage and patch generation
+- Delivers assistive context to the LLM triage agent with uncertainty indicators
+- Graceful degradation: falls back to baseline scanner + LLM pipeline if disabled (`PYTORCH_ML_ENABLED=false`) or if model file is unavailable
 
 ### 2.5 Context Layer
 - **tree-sitter** parses source into an AST to extract precise function/class boundaries around each finding

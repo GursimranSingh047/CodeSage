@@ -18,3 +18,9 @@ test-target-repo/__pycache__/
 codesage_data/
 .DS_Store
 *.log
+*.pem
+*.key
+*.cert
+*.p12
+credentials.json
+secrets.json

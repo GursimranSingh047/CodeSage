@@ -19,6 +19,14 @@ export type FindingStatus =
   | "pr_failed"
   | "resolved";
 
+export interface MLPrediction {
+  category: string;
+  confidence: number;
+  risk_score: number;
+  uncertain?: boolean;
+  details?: Record<string, unknown>;
+}
+
 export interface Finding {
   id: string;
   finding_id?: string;
@@ -43,6 +51,7 @@ export interface Finding {
   reasoning?: string;
   explanation?: string;
   attempts?: number;
+  ml_prediction?: MLPrediction;
 }
 
 export interface FindingArtifacts {

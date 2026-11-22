@@ -12,6 +12,7 @@ import {
   Copy,
   AlertCircle,
   RefreshCw,
+  Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CodeSnippetViewer } from "@/components/findings/CodeSnippetViewer";
@@ -403,6 +404,83 @@ export const FindingDetailWorkspace: React.FC<FindingDetailWorkspaceProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* ML CLASSIFICATION CARD */}
+              {finding.ml_prediction && (
+                <div className="surface-card rounded-2xl p-6 border border-[#292D2A] bg-[#101211] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-[#8CFF8C]" />
+                      <h2 className="text-base font-sans font-bold text-[#F4F5F4]">
+                        ML Classification
+                      </h2>
+                    </div>
+                    {finding.ml_prediction.uncertain && (
+                      <span className="font-mono text-[11px] text-[#FFB84D] bg-[#FFB84D]/10 border border-[#FFB84D]/30 px-2 py-0.5 rounded">
+                        Uncertain / Low Confidence
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-1">
+                    {/* Category */}
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-[#666C68]">
+                        Category
+                      </span>
+                      <p className="text-sm font-sans font-bold text-[#F4F5F4]">
+                        {finding.ml_prediction.category}
+                      </p>
+                    </div>
+
+                    {/* Confidence */}
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-[#666C68]">
+                        Confidence
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-bold text-[#8CFF8C]">
+                          {Math.round(finding.ml_prediction.confidence * 100)}%
+                        </span>
+                        <div className="flex-1 max-w-[80px] h-1.5 bg-[#1F2220] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#8CFF8C] rounded-full"
+                            style={{ width: `${Math.round(finding.ml_prediction.confidence * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Risk Score */}
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-[#666C68]">
+                        Risk Score
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={clsx(
+                            "text-sm font-mono font-bold",
+                            finding.ml_prediction.risk_score >= 0.7
+                              ? "text-[#FF5577]"
+                              : finding.ml_prediction.risk_score >= 0.4
+                              ? "text-[#FFB84D]"
+                              : "text-[#8CFF8C]"
+                          )}
+                        >
+                          {finding.ml_prediction.risk_score.toFixed(2)}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#666C68]">
+                          {finding.ml_prediction.risk_score >= 0.7
+                            ? "High"
+                            : finding.ml_prediction.risk_score >= 0.4
+                            ? "Moderate"
+                            : "Low"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* CODE CHANGE CARD */}
               <div className="surface-card rounded-2xl p-6 border border-[#292D2A] bg-[#101211] space-y-4">
